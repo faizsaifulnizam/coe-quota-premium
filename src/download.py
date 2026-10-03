@@ -59,8 +59,8 @@ def fetch_to_part(dataset_id, part):
     try:
         j = json.loads(get(base + "/poll-download"))
         url = (j.get("data") or {}).get("url") or ""
-    except Exception:
-        pass
+    except Exception as exc:  # a 403 and "not ready yet" must not look the same
+        print(f"  poll-download ({type(exc).__name__}): {exc}")
     if not url:
         get(base + "/initiate-download")
         for _ in range(15):

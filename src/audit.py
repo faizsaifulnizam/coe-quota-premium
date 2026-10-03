@@ -82,7 +82,11 @@ def main():
     for r in under:
         print(f"    {r['month']} R{r['bidding_no']} {r['vehicle_class']}: quota {r['quota']}, received {r['bids_received']}, success {r['bids_success']}")
     filled = sum(1 for r in rows if num(r["bids_success"]) == num(r["quota"]))
-    print(f"  exercises where every certificate was taken (bids_success == quota): {filled} of {len(rows)}")
+    over = [r for r in rows if num(r["bids_received"]) >= num(r["quota"])]
+    short = sum(1 for r in over if num(r["bids_success"]) < num(r["quota"]))
+    fills = sorted(num(r["bids_success"]) / num(r["quota"]) for r in rows)
+    print(f"  exact fill (bids_success == quota): {filled} of {len(rows)}")
+    print(f"  oversubscribed rows short of quota: {short} of {len(over)} · median fill: {fills[len(fills) // 2]:.4f}")
     print(f"  premium <= 0: {sum(1 for r in rows if num(r['premium']) <= 0)}")
 
     # definition break

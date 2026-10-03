@@ -6,7 +6,9 @@ In CI:            same command, on every push + PR (.github/workflows/ci.yml)
 These do NOT re-run the pipeline (that needs the raw download); they check the
 repo's committed outputs, figures and banners are present, parse, and keep their
 expected shape. Regenerating the outputs should still keep these green:
-required-column SUBSETS only, no headline numbers, figures = existence + size floor.
+required-column SUBSETS only, figures = existence + size floor — plus a few
+deliberate historic ANCHORS (the 2024-01 Cat B jump, the Cat D post-2022 sign)
+that must not drift silently; update those only with a justified data revision.
 """
 
 from __future__ import annotations
@@ -69,6 +71,11 @@ def test_jumps_csv() -> None:
     for r in rows:
         int(r["rank_in_category"]), int(r["premium_before"]), int(r["premium_after"]), int(r["d_premium"])
         float(r["d_quota_pct"]), float(r["bpq_before"]), float(r["bpq_after"])
+    for r in rows:
+        assert int(r["d_premium"]) > 0, "the jump set is increases-only"
+    anchor = [r for r in rows if r["category"] == "Category B" and r["rank_in_category"] == "1"][0]
+    assert (anchor["month"], int(anchor["d_premium"]), int(anchor["quota_before"]), int(anchor["quota_after"])) \
+        == ("2024-01", 26990, 633, 657), "Cat B's anchor jump changed — update only on a data restatement"
 
 
 def test_attribution_csv() -> None:
@@ -81,6 +88,8 @@ def test_attribution_csv() -> None:
         assert -1.0 <= float(r["rho_premium_quota"]) <= 1.0
         assert -1.0 <= float(r["rho_premium_bpq"]) <= 1.0
         assert int(r["n"]) > 0
+    d_post = [r for r in rows if r["category"] == "Category D" and r["regime"] == "post"][0]
+    assert float(d_post["rho_premium_bpq"]) < 0, "Cat D's post-2022 sign changed — re-check the headline's scope"
 
 
 def test_sensitivity_csv() -> None:
@@ -106,9 +115,18 @@ def test_banner_assets_present() -> None:
         assert p.stat().st_size > 500, f"{name} suspiciously small"
 
 
+def test_figures_synced_to_docs() -> None:
+    fig_dir = ROOT / "reports" / "figures"
+    img_dir = ROOT / "docs" / "img"
+    for n in EXPECTED_FIGURES:
+        b = img_dir / n
+        assert b.is_file(), f"missing site copy: docs/img/{n}"
+        assert (fig_dir / n).read_bytes() == b.read_bytes(), f"docs/img/{n} is stale — re-run src/figures.py"
+
+
 def main() -> int:
     checks = [test_pressure_csv, test_jumps_csv, test_attribution_csv, test_sensitivity_csv,
-              test_figures_present, test_banner_assets_present]
+              test_figures_present, test_banner_assets_present, test_figures_synced_to_docs]
     failed = 0
     for fn in checks:
         try:

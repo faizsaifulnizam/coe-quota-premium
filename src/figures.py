@@ -12,7 +12,7 @@ must sit inside the canvas. Re-render twice and hash-compare before committing.
 """
 import json
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import matplotlib
@@ -55,10 +55,20 @@ def use_palette(p):
     T = p
 
 
+SGT = timezone(timedelta(hours=8))  # Singapore is UTC+8 year-round
+
+
 def _source_date():
+    """The pull date in Singapore time (the publisher's clock) — robust to a manifest
+    written from any timezone (e.g. a UTC sandbox run)."""
     try:
         ts = json.loads(MANIFEST.read_text(encoding="utf-8")).get("retrieved_at", "")
-        return ts[:10] or None
+        if not ts:
+            return None
+        dt = datetime.fromisoformat(ts)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=SGT)
+        return dt.astimezone(SGT).date().isoformat()
     except Exception:
         return None
 
@@ -251,16 +261,33 @@ def fig2_pressure(con, canvas_in=9.0):
     st = fig.suptitle(title, x=0.012, y=0.98, ha="left", fontsize=12.5, color=T["ink"])
 
     colors = {"Category A": T["petrol"], "Category B": T["burnt"]}
-    for ax, field, ylim, ylab in ((axs[0], "bids_per_quota", (1.0, 3.4), "bids received ÷ quota"),
-                                  (axs[1], "success_rate", (0.40, 0.92), "successful ÷ received")):
-        for cat in ("Category A", "Category B"):
-            rows = series(con, cat)
-            ax.plot([r[0] for r in rows], [float(r[3]) if field == "bids_per_quota" else float(r[4]) for r in rows],
+    sets = {cat: series(con, cat) for cat in ("Category A", "Category B")}
+
+    def field_vals(field):
+        return [float(r[3] if field == "bids_per_quota" else r[4]) for cat in sets for r in sets[cat]]
+
+    for ax, field, ylab in ((axs[0], "bids_per_quota", "bids received ÷ quota"),
+                            (axs[1], "success_rate", "successful ÷ received")):
+        v = field_vals(field)
+        pad = 0.10 * (max(v) - min(v))  # limits from the data with padding — no clipped spikes
+        for cat in sets:
+            ax.plot([r[0] for r in sets[cat]],
+                    [float(r[3]) if field == "bids_per_quota" else float(r[4]) for r in sets[cat]],
                     color=colors[cat], lw=1.1, alpha=0.9, label=f"Category {cat[-1]}")
-        ax.set_ylim(*ylim)
+        ax.set_ylim(min(v) - pad, max(v) + pad)
+        print(f"F2 ylim {field}: {min(v) - pad:.3f} – {max(v) + pad:.3f} (data {min(v):.4f} – {max(v):.4f})")
         ax.set_ylabel(ylab, fontsize=9)
         ax.axvline(mdates.datestr2num(BREAK_DATE), color=T["ink"], lw=0.9, ls=":", alpha=0.9)
         ax.legend(loc="best", fontsize=8, ncol=2)
+
+    # receipt: the lower panel is mechanically close to 1 / bids-per-quota (quota is
+    # nearly filled) — quote this number, not "a second measure" (README caption)
+    sr_v, inv_v = field_vals("success_rate"), [1 / x for x in field_vals("bids_per_quota")]
+    ma, mb = sum(sr_v) / len(sr_v), sum(inv_v) / len(inv_v)
+    cov = sum((a - ma) * (b - mb) for a, b in zip(sr_v, inv_v))
+    rho = cov / ((sum((a - ma) ** 2 for a in sr_v) ** 0.5) * (sum((b - mb) ** 2 for b in inv_v) ** 0.5))
+    gaps = sorted(abs(a - b) for a, b in zip(sr_v, inv_v))
+    print(f"F2: corr(success rate, 1 / bids-per-quota) = {rho:.3f} · median |gap| = {gaps[len(gaps) // 2]:.4f}")
     axs[0].set_title("Count pressure: bids per quota", fontsize=10, color=T["muted"])
     axs[1].set_title("Outcome: share of bids that won a certificate", fontsize=10, color=T["muted"])
     axs[1].set_xticks([date(y, 1, 1) for y in range(2010, 2027, 2)])
@@ -332,6 +359,14 @@ def main():
         fig1_quota_premium(con)
         fig2_pressure(con)
         fig3_scatter(con)
+    # mirror the six figures into docs/img/ — the Pages site serves these, copied in
+    # the same run so they cannot go stale (the smoke test hash-checks the copies)
+    img = ROOT / "docs" / "img"
+    img.mkdir(parents=True, exist_ok=True)
+    for stem in ("f1_quota_premium", "f2_pressure", "f3_scatter"):
+        for sfx in ("", "-dark"):
+            (img / f"{stem}{sfx}.png").write_bytes((FIGDIR / f"{stem}{sfx}.png").read_bytes())
+    print("copied 6 figures → docs/img/")
     print("figures done — light + dark")
 
 

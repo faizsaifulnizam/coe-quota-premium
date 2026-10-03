@@ -1,0 +1,4 @@
+# CSV outputs are written with LF endings on every platform (src/analysis.py write_csv);
+# keep the working tree LF so `git diff --quiet` and `git status` both stay clean
+# after a regeneration, on Windows and Unix alike.
+*.csv text eol=lf
