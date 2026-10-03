@@ -1,0 +1,17 @@
+variant,category,regime,n,rho_premium_quota,rho_premium_bpq
+"base: % changes, gap + break deltas excluded",Category A,post,105,-0.139,0.372
+"base: % changes, gap + break deltas excluded",Category A,pre,288,-0.033,0.366
+"base: % changes, gap + break deltas excluded",Category B,post,105,-0.094,0.555
+"base: % changes, gap + break deltas excluded",Category B,pre,288,-0.081,0.421
+including the 2020 resume delta,Category A,post,105,-0.139,0.372
+including the 2020 resume delta,Category A,pre,289,-0.026,0.371
+including the 2020 resume delta,Category B,post,105,-0.094,0.555
+including the 2020 resume delta,Category B,pre,289,-0.07,0.426
+absolute S$ change basis,Category A,post,105,-0.113,0.388
+absolute S$ change basis,Category A,pre,288,-0.02,0.342
+absolute S$ change basis,Category B,post,105,-0.08,0.545
+absolute S$ change basis,Category B,pre,288,-0.065,0.401
+Pearson on % changes,Category A,post,105,-0.22,0.446
+Pearson on % changes,Category A,pre,288,-0.168,0.326
+Pearson on % changes,Category B,post,105,-0.27,0.54
+Pearson on % changes,Category B,pre,288,-0.107,0.245
