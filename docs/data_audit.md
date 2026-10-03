@@ -26,7 +26,7 @@ Produced by `src/audit.py` (stdlib only — independent of the DuckDB pipeline b
 
 - 0 duplicate (month, round, category) keys · 0 rows with `bids_success > bids_received` · 0 with `bids_success > quota` · 0 non-positive premiums.
 - **1 undersubscribed exercise** in 16 years: 2010-02 R1 Category B — 930 bids for 1,154 certificates, 690 successful (bids below the reserve price still fail). Every other exercise received at least as many bids as certificates.
-- When bids exceed quota the quota is fully taken: 384 of 1,980 rows have `bids_success == quota` exactly.
+- **Exact fill** (`bids_success == quota`) is **384 / 1,980**. Median fill is **99.2%**; **1,595** of the 1,979 oversubscribed rows fall short (usually by little — the shortfall is not explained here). Success rate is therefore close to, but not exactly, `1 / bids-per-quota`.
 
 ## The May-2022 definition break (A/B)
 

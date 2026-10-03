@@ -4,7 +4,9 @@ Run: python src/analysis.py   (from the repo root; reads data/processed/coe_exer
 
 The core move: exercise-over-exercise changes per category. Premium moves are compared
 with quota moves (supply) and bids-per-quota moves (count pressure) using Spearman rank
-correlation on % changes — descriptive only, "associated with", never "caused".
+correlation — premium and quota as % changes, bids-per-quota as its level change (d_bpq;
+a bids-% variant ships in the sensitivity table). Descriptive only, "associated with",
+never "caused".
 The file contains bid counts, not bid values; premiums are set by the marginal
 successful bid value, which is not observable here (stated everywhere it matters).
 
@@ -19,7 +21,7 @@ Receipts printed:
   2. hand-checks: 3 dated cells recomputed from the RAW CSV with stdlib only
   3. identity asserts (metric + delta consistency)
   4. headline reads (latest exercise, top jumps, regime medians)
-  5. attribution + sensitivity tables
+  5. attribution + sensitivity tables (+ a rank-residual partial)
 
 Validation runs BEFORE any output file is written; a failing run leaves existing
 outputs untouched. Writes: outputs/coe_pressure.csv · coe_jumps.csv ·
@@ -95,11 +97,46 @@ def attribution(con, sample, x="d_premium_pct", y_quota="d_quota_pct", y_bpq="d_
         FROM ranked GROUP BY category, regime ORDER BY category, regime""")
 
 
+def partial_rank_corr(con, sample, cats, x="d_premium_pct", y="d_quota_pct", z="d_bids_received_pct"):
+    """Spearman of x vs y net of z — rank-residual correlation (a printed receipt).
+
+    The quota link is confounded (bid growth raises quota mechanically, and
+    bids-per-quota has quota in its denominator), so net bids % out."""
+    def ranks(v):
+        order = sorted(range(len(v)), key=lambda i: v[i])
+        rk = [0.0] * len(v)
+        i = 0
+        while i < len(order):
+            j = i
+            while j + 1 < len(order) and v[order[j + 1]] == v[order[i]]:
+                j += 1
+            for k in range(i, j + 1):
+                rk[order[k]] = (i + j) / 2 + 1
+            i = j + 1
+        return rk
+
+    def resid(a, zr):
+        ma, mz = sum(a) / len(a), sum(zr) / len(zr)
+        s = sum((ai - ma) * (zi - mz) for ai, zi in zip(a, zr)) / sum((zi - mz) ** 2 for zi in zr)
+        return [ai - ma - s * (zi - mz) for ai, zi in zip(a, zr)]
+
+    rr = q(con, f"SELECT {x}, {y}, {z} FROM deltas WHERE {sample} AND category IN ({cats})")
+    ex = resid(ranks([float(r[0]) for r in rr]), ranks([float(r[2]) for r in rr]))
+    ey = resid(ranks([float(r[1]) for r in rr]), ranks([float(r[2]) for r in rr]))
+    mx, my = sum(ex) / len(ex), sum(ey) / len(ey)
+    cov = sum((a - mx) * (b - my) for a, b in zip(ex, ey))
+    return cov / ((sum((a - mx) ** 2 for a in ex) ** 0.5) * (sum((b - my) ** 2 for b in ey) ** 0.5))
+
+
 def write_csv(path, header, rows):
-    with path.open("w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
+    """Write via a temp file + atomic replace; LF endings so `git diff --quiet`
+    holds on every platform (csv.writer's default is CRLF)."""
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f, lineterminator="\n")
         w.writerow(header)
         w.writerows(rows)
+    os.replace(tmp, path)
     print(f"wrote: {path.as_posix()}  ({path.stat().st_size} bytes, {len(rows)} rows)")
 
 
@@ -175,20 +212,23 @@ def main():
     print(f"   [{'PASS' if ok else 'FAIL'}] delta check: 2026-09 R2 Cat A premium move {d_expected:+,} (raw) vs {float(d_row):+,.0f} (pipeline)")
     failed |= not ok
 
-    # ---- jump events (top 5 premium moves per category, ranked by the S$ move) ----
-    # Basis: the S$ change — the unit COE prices are quoted in. % moves on the early
-    # low-base values are dominated by small-denominator noise; the S$ column and the
-    # % column both ship in the table. One source anomaly (Cat D 2010-01 R2: 889 →
-    # 20,090, reverting next exercise) stays visible and is noted, not trimmed.
+    # ---- jump events (top 5 S$ increases per category) ----
+    # Basis: the S$ change — the unit COE prices are quoted in; increases only.
+    # % moves on the early low-base values are dominated by small-denominator noise.
+    # Excluded from this ranking (both stay in coe_pressure.csv, counted): the
+    # 2020-resume delta (gap_spanning — out of every statistic) and the known source
+    # anomaly Cat D 2010-01 R2 (889 → 20,090, reverting next exercise).
     print()
-    print("== jump events (top 5 premium moves per category, ranked by S$ change) ==")
+    print("== jump events (top 5 S$ increases per category; resume + Cat D anomaly excluded) ==")
     jumps = q(con, f"""
         SELECT category, month, round_no, prev_month, prev_round,
                prev_premium, premium, d_premium, d_premium_pct,
                prev_quota, quota, d_quota_pct, prev_bpq, bids_per_quota, d_bpq,
                prev_success_rate, success_rate, regime, crosses_break, gap_spanning,
                row_number() OVER (PARTITION BY category ORDER BY d_premium DESC) AS rn
-        FROM deltas WHERE d_premium IS NOT NULL
+        FROM deltas
+        WHERE d_premium IS NOT NULL AND NOT gap_spanning
+          AND NOT (category = 'Category D' AND month = DATE '2010-01-01' AND round_no = 2)
         QUALIFY rn <= 5
         ORDER BY category, rn""")
     print(f"   jump rows: {len(jumps)} (expect 25)")
@@ -202,7 +242,7 @@ def main():
 
     # ---- attribution (base) + sensitivity variants ----
     print()
-    print("== attribution: premium moves vs quota moves / bid pressure (Spearman on % changes) ==")
+    print("== attribution: premium moves vs quota / bid pressure (premium % and quota % vs bids-per-quota level change) ==")
     attr = attribution(con, BASE_SAMPLE)
     print(f"   {'category':<12} {'regime':<5} {'n':>4} {'rho prem~quota':>15} {'rho prem~bpq':>13}")
     for cat, regime, n, rq_, rb_ in attr:
@@ -216,12 +256,19 @@ def main():
         ("including the 2020 resume delta", attribution(con, INCL_GAP_SAMPLE, cats=AB)),
         ("absolute S$ change basis", attribution(con, BASE_SAMPLE, x="d_premium", y_quota="d_quota", cats=AB)),
         ("Pearson on % changes", attribution(con, BASE_SAMPLE, rank=False, cats=AB)),
+        ("bids % (not bids-per-quota)", attribution(con, BASE_SAMPLE, y_bpq="d_bids_received_pct", cats=AB)),
     ]
     for label, rows in variants:
         for cat, regime, n, rq_, rb_ in rows:
             sens.append((label, cat, regime, n, rq_, rb_))
             print(f"   {label:<44} {cat:<12} {regime:<5} n={int(n):>4} rho_quota {float(rq_):+.3f} · rho_bpq {float(rb_):+.3f}")
-    failed |= len(sens) != 16
+    failed |= len(sens) != 20
+
+    print()
+    print("== partial: premium % ~ quota % | bids % (rank-residual, post-2022) ==")
+    for cat in ("Category A", "Category B"):
+        pc = partial_rank_corr(con, BASE_SAMPLE + " AND regime = 'post'", f"'{cat}'")
+        print(f"   {cat}: rho(prem%, quota% | bids%) = {pc:+.3f}")
 
     # ---- headline reads ----
     print()
@@ -237,17 +284,22 @@ def main():
     print("   regime medians (quota · bpq · success rate · premium):")
     for cat, regime, mq, mb, ms, mp in med:
         print(f"   {cat:<12} {regime:<5} quota {float(mq):>7,.0f} · bpq {float(mb):.2f} · sr {float(ms):.1%} · premium {float(mp):>8,.0f}")
-    a25 = q(con, """SELECT avg(quota), avg(premium), avg(bids_per_quota) FROM exercise
-                    WHERE category = 'Category A' AND month BETWEEN DATE '2024-01-01' AND DATE '2024-12-31'""")[0]
-    a26 = q(con, """SELECT avg(quota), avg(premium), avg(bids_per_quota) FROM exercise
-                    WHERE category = 'Category A' AND month >= DATE '2026-01-01'""")[0]
-    print(f"   Cat A 2024 vs 2026 (partial): quota {float(a25[0]):,.0f} → {float(a26[0]):,.0f} "
-          f"({100 * (float(a26[0]) / float(a25[0]) - 1):+.0f}%) · premium {float(a25[1]):,.0f} → {float(a26[1]):,.0f} "
-          f"· bpq {float(a25[2]):.2f} → {float(a26[2]):.2f}")
-    rec = q(con, """SELECT category, month, round_no, premium FROM exercise
-                    WHERE premium = (SELECT max(premium) FROM exercise WHERE category = 'Category A')
-                      AND category = 'Category A'""")[0]
-    print(f"   Cat A record premium: {int(rec[3]):,} at {rec[1]} R{rec[2]}")
+    def cat_a_avg(lo, hi):
+        return q(con, f"""SELECT avg(quota), avg(premium), avg(bids_per_quota) FROM exercise
+                          WHERE category = 'Category A'
+                            AND month BETWEEN DATE '{lo}' AND DATE '{hi}'""")[0]
+    a24f = cat_a_avg("2024-01-01", "2024-12-31")
+    a24j = cat_a_avg("2024-01-01", "2024-09-30")
+    a26 = cat_a_avg("2026-01-01", "2026-12-31")
+    print(f"   Cat A 2024 (full) → 2026 (Jan–Sep): quota {float(a24f[0]):,.0f} → {float(a26[0]):,.0f} "
+          f"({100 * (float(a26[0]) / float(a24f[0]) - 1):+.1f}%) · premium {float(a24f[1]):,.0f} → {float(a26[1]):,.0f}")
+    print(f"   Cat A Jan–Sep both years:            quota {float(a24j[0]):,.0f} → {float(a26[0]):,.0f} "
+          f"({100 * (float(a26[0]) / float(a24j[0]) - 1):+.1f}%) · premium {float(a24j[1]):,.0f} → {float(a26[1]):,.0f}")
+    for cat in ("Category A", "Category B"):
+        rec = q(con, f"""SELECT category, month, round_no, premium FROM exercise
+                         WHERE premium = (SELECT max(premium) FROM exercise WHERE category = '{cat}')
+                           AND category = '{cat}'""")[0]
+        print(f"   Cat {cat[-1]} record premium: {int(rec[3]):,} at {rec[1]} R{rec[2]}")
 
     if failed:
         print()

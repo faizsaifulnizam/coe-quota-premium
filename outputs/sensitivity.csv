@@ -15,3 +15,7 @@ Pearson on % changes,Category A,post,105,-0.22,0.446
 Pearson on % changes,Category A,pre,288,-0.168,0.326
 Pearson on % changes,Category B,post,105,-0.27,0.54
 Pearson on % changes,Category B,pre,288,-0.107,0.245
+bids % (not bids-per-quota),Category A,post,105,-0.139,0.34
+bids % (not bids-per-quota),Category A,pre,288,-0.033,0.32
+bids % (not bids-per-quota),Category B,post,105,-0.094,0.504
+bids % (not bids-per-quota),Category B,pre,288,-0.081,0.388
