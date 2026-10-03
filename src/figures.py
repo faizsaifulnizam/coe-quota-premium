@@ -305,10 +305,11 @@ def fig3_scatter(con, canvas_in=9.0):
         ax.annotate(f"{str(last[0])[:7]}: {float(last[2]):,.0f}", (float(last[1]), float(last[2])),
                     xytext=(-6, 8), textcoords="offset points", ha="right", fontsize=8, color=T["ink"])
 
-    fig.subplots_adjust(left=0.10, right=0.985, top=0.845, bottom=0.135, wspace=0.16)
+    fig.subplots_adjust(left=0.10, right=0.985, top=0.845, bottom=0.175, wspace=0.16)
     ftxt = foot(fig, foottext)
     assert_clear(fig, [(st, drawn_title(axs[0])), (st, drawn_title(axs[1])),
-                       (ftxt, axs[1].get_xticklabels()[-1])], "F3 suptitle/title + footnote/ticks")
+                       (ftxt, axs[0].xaxis.label), (ftxt, axs[1].xaxis.label),
+                       (ftxt, axs[1].get_xticklabels()[-1])], "F3 suptitle/title + footnote/labels/ticks")
     assert_inbounds(fig, "F3")
     assert_texts_clear(fig, "F3")
     assert_legend_clear(fig, "F3")
