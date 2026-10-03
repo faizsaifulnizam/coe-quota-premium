@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>coe-quota-premium — Pressure, not quota? Singapore's COE premium jumps</title>
+<meta name="description" content="Do COE premiums jump because quotas get tighter — or because more bids chase the same quota? A reproducible auction-by-auction split on LTA data (396 auctions, 2010–2026).">
+<meta property="og:title" content="coe-quota-premium — Pressure, not quota?">
+<meta property="og:description" content="COE premiums track bids-per-quota (ρ +0.37/+0.56) far more than quota (ρ −0.14/−0.09); at the 25 largest jumps the quota was as likely to rise as fall while bids-per-quota rose in 19 of 25.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://faizsaifulnizam.github.io/coe-quota-premium/img/social-card.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#FBFBF9;--fg:#14293D;--muted:#5C6B79;--accent:#2E7D6B;--rule:#E7E3DC;--fig-bg:#FBFBF9}
+@media (prefers-color-scheme: dark){:root{--bg:#101E2B;--fg:#EAE6DF;--muted:#9AA9B6;--accent:#8FD0BE;--rule:#2A3B4A;--fig-bg:#0C1824}}
+@font-face{font-family:'Inter';src:url('fonts/Inter-Regular.ttf');font-weight:400}
+@font-face{font-family:'Inter';src:url('fonts/Inter-SemiBold.ttf');font-weight:600}
+@font-face{font-family:'Source Serif 4';src:url('fonts/SourceSerif4-Regular.ttf');font-weight:400}
+@font-face{font-family:'Source Serif 4';src:url('fonts/SourceSerif4-Bold.ttf');font-weight:700}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,-apple-system,Segoe UI,Arial,sans-serif;line-height:1.6;font-size:16.5px}
+.wrap{max-width:880px;margin:0 auto;padding:36px 22px 56px}
+.series{color:var(--accent);font-size:14.5px;letter-spacing:.02em;margin:0 0 14px}
+.banner img{width:100%;height:auto;display:block;border:1px solid var(--rule);border-radius:10px}
+.lead{font-family:'Source Serif 4',Georgia,serif;font-size:22px;line-height:1.5;margin:34px 0 8px}
+.lead b{font-weight:700}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:26px 0}
+.stat{border:1px solid var(--rule);border-radius:10px;padding:14px 16px}
+.stat .n{font-family:'Source Serif 4',Georgia,serif;font-size:29px;line-height:1.15}
+.stat .l{color:var(--muted);font-size:14px;margin-top:6px}
+h2{font-family:'Source Serif 4',Georgia,serif;font-size:26px;font-weight:700;margin:52px 0 12px}
+p{margin:12px 0}
+a{color:var(--accent)}
+.fig{margin:26px 0}
+.fig img{width:100%;height:auto;display:block;border:1px solid var(--rule);border-radius:10px}
+.fig figcaption,.cap{color:var(--muted);font-size:14px;margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.grid2 .fig{margin:0}
+.grid2 img{border-radius:8px}
+.note{border:1px solid var(--rule);border-radius:10px;padding:14px 16px;font-size:14.5px;color:var(--muted)}
+ol.method{margin:14px 0;padding-left:22px}
+ol.method li{margin:10px 0}
+pre{background:transparent;border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;font-size:13px;line-height:1.55}
+code{font-family:ui-monospace,Consolas,Menlo,monospace;font-size:.92em}
+footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:var(--muted);font-size:13.5px}
+@media (max-width:760px){.stats{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<p class="series">LTA COE bidding results via data.gov.sg · 396 auctions × 5 categories, 2010–2026 · 3 of 6</p>
+
+<div class="banner">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="img/banner-dark.svg">
+<img src="img/banner.svg" alt="coe-quota-premium — did COE premiums jump because quotas were cut, or because more bids chased the same quota">
+</picture>
+</div>
+
+<p class="lead">Across <b>396 auctions since 2010</b>, premium jumps travel with <b>bid-count pressure, not quota cuts</b>: premium moves track <b>bids-per-quota</b> (ρ <b>+0.37</b> Cat A / <b>+0.56</b> Cat B since May 2022) far more than <b>quota</b> (ρ <b>−0.14 / −0.09</b>), and at the 25 largest jumps the quota was as likely to rise as fall (median <b>0.0%</b>) while bids-per-quota rose in <b>19 of 25</b> — the two biggest jumps, both in <b>2024-01 R2</b>, came with flat quotas and bid surges. But the 2024–26 records (Cat A <b>133,009</b> in Sep 2026) rose on a <i>recovering</i> quota — premiums follow the marginal bid value, which this file doesn't contain.</p>
+
+<div class="stats">
+  <div class="stat"><div class="n">ρ +0.37 / +0.56</div><div class="l">premium moves vs bids-per-quota, Cat A/B since May 2022 — far above vs quota (ρ −0.14 / −0.09); Spearman on % changes</div></div>
+  <div class="stat"><div class="n">median 0.0%</div><div class="l">quota move at the 25 largest premium jumps — as likely to rise as fall; bids-per-quota rose in 19 of 25</div></div>
+  <div class="stat"><div class="n">133,009</div><div class="l">Cat A record (2026-09) on a recovering quota — +28% average quota vs 2024 while the premium kept climbing; latest 131,890</div></div>
+  <div class="stat"><div class="n">1,980/1,980 · 10/10</div><div class="l">rows retained, checks passed, 0 exclusions — 396 exercises × 5 categories, 2010-01 → 2026-09</div></div>
+</div>
+
+<div class="fig">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="img/f1_quota_premium-dark.png">
+<img src="img/f1_quota_premium.png" alt="Quota premium and quota per exercise, Category A and B, 2010–2026, with the May-2022 redefinition marked">
+</picture>
+<figcaption>Quota premium (left) vs quota (right), Category A and B — the quota cycles; the premium climbs to records. Dotted line: the May-2022 A/B redefinition. No exercises Apr–Jun 2020 (bidding pause).</figcaption>
+</div>
+
+<h2>More views</h2>
+<div class="grid2">
+  <figure class="fig">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="img/f2_pressure-dark.png"><img src="img/f2_pressure.png" alt="Bids per quota and success rate over time, Category A and B"></picture>
+  <figcaption>Count pressure: bids per quota and the success rate — the same competition read two ways. The spikes are exercises where bid counts surged relative to quota.</figcaption>
+  </figure>
+  <div class="note"><b>The attribution table.</b> Premium moves vs quota vs bids-per-quota — four variants (base · including the 2020 resume · absolute S$ · Pearson); direction and ordering stable, Spearman bases within ±0.03.<br><br><a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_attribution.csv">outputs/coe_attribution.csv</a> — full write-up in the <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/decision_memo.md">decision memo</a>.</div>
+</div>
+
+<h2>Method</h2>
+<ol class="method">
+<li><b>Pull</b> — LTA COE bidding results from data.gov.sg; structure-validated before replacing files, SHA-256 + coverage in a manifest (1,980 rows = 396 exercises × 5 categories, 2010-01 → 2026-09). <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/src/download.py">src/download.py</a></li>
+<li><b>Audit</b> — round structure, category completeness, the 2020 pause and dirty cells resolved from the live file <i>before</i> analysis. <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/data_audit.md">docs/data_audit.md</a></li>
+<li><b>Stage &amp; check</b> — comma-formatted thousands ("1,438") parsed with a counted rule set; month + round → an ordered exercise; 10 assertions run <i>before</i> the parquet is written. <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/sql/01_staging.sql">sql/01</a> · <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/sql/05_checks.sql">sql/05</a></li>
+<li><b>Measure &amp; attribute</b> — exercise-over-exercise deltas per category; premium moves vs quota vs bids-per-quota (Spearman on % changes), 4 variants; the top-5 S$ moves per category. <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/src/analysis.py">src/analysis.py</a> → <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_attribution.csv">coe_attribution.csv</a> · <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_jumps.csv">coe_jumps.csv</a></li>
+<li><b>Draw &amp; write</b> — three figures as code, light and dark (<a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/src/figures.py">src/figures.py</a>); then the <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/decision_memo.md">decision memo</a> and the <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/sensitivity.md">sensitivity checks</a>.</li>
+</ol>
+
+<h2>Reproduce</h2>
+<pre><code>git clone https://github.com/faizsaifulnizam/coe-quota-premium &amp;&amp; cd coe-quota-premium
+uv venv .venv --python 3.12          # or: python -m venv .venv
+source .venv/bin/activate            # Windows: .venv\Scripts\activate
+uv pip install -r requirements.txt   # or: pip install -r requirements.txt
+
+python src/download.py       # raw CSV → data/raw/ (gitignored; add --force to re-pull)
+python src/build_dataset.py  # staging + 10 checks → data/processed/coe_exercises.parquet
+python src/analysis.py       # pressure table + jumps + attribution + sensitivity → outputs/
+python src/figures.py        # re-renders reports/figures/ (light + dark)</code></pre>
+<p class="cap">Then check <code>outputs/coe_pressure.csv</code>: the 2026-09 R1 Category A row reads premium <b>133,009</b> with quota 1,195 and bids per quota 1.43; R2 reads 131,890. And the first Category B row of <code>outputs/coe_jumps.csv</code> reads +26,990 (2024-01 R2; bids per quota 1.34 → 1.99). Data as of the 2026-10-04 pull — a later re-pull can move the newest exercise.</p>
+
+<h2>Read more</h2>
+<ul>
+<li><a href="https://github.com/faizsaifulnizam/coe-quota-premium">The repository</a> — README carries the full method, rules, and caveats</li>
+<li><a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/decision_memo.md">Decision memo</a> · <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/sensitivity.md">Sensitivity checks</a> · <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/data_audit.md">Data audit</a></li>
+<li><a href="https://github.com/faizsaifulnizam/coe-quota-premium/tree/main/outputs">Outputs</a> — coe_attribution.csv · coe_jumps.csv · coe_pressure.csv</li>
+</ul>
+
+<footer>
+<p>An independent, unofficial analysis by <a href="https://github.com/faizsaifulnizam">Muhammad Faiz Saifulnizam</a>. Data: LTA COE bidding results via <a href="https://data.gov.sg/datasets/d_69b3380ad7e51aff3a7dcc84eba52b8a/view">data.gov.sg</a> — Singapore Open Data Licence. Code: MIT. Not a forecast; not causal advice.</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="320" viewBox="0 0 1280 320" role="img" aria-label="coe-quota-premium — when COE premiums jump, is the quota tighter or are more bids chasing the same quota: a six-repo series on Singapore's public data">
+  <rect width="1280" height="320" fill="#FBFBF9"/>
+  <title>coe-quota-premium — a six-repo series on Singapore's public data</title>
+  <text x="72" y="118" font-family="Georgia, 'Source Serif 4', serif" font-size="58" fill="#14293D">coe-quota-premium</text>
+  <rect x="72" y="146" width="430" height="4" fill="#2E7D6B"/>
+  <text x="72" y="196" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#5C6B79">When COE premiums jump — is the quota tighter, or are more</text>
+  <text x="72" y="222" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#5C6B79">bids chasing the same quota? Across 396 auctions (2010–2026),</text>
+  <text x="72" y="248" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#5C6B79">premium moves track <tspan fill="#22607B">●</tspan> bids-per-quota (ρ +0.37–0.56, Cat A/B) more than</text>
+  <text x="72" y="274" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#5C6B79"><tspan fill="#2E7D6B">●</tspan> quota changes — the 2026 records rose on a recovering quota.</text>
+  <text x="72" y="306" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="16" fill="#8B98A5">Quota premium = the lowest successful bid · May-2022 A/B redefinition marked on every timeline</text>
+  <line x1="800" y1="132" x2="1200" y2="132" stroke="#E7E3DC" stroke-width="1"/>
+  <path d="M800.0,132.0 L808.0,126.2 L816.0,120.9 L824.0,116.5 L832.0,112.1 L840.0,107.4 L848.0,110.5 L856.0,98.6 L864.0,94.5 L872.0,76.2 L880.0,98.3 L888.0,87.4 L896.0,91.1 L904.0,100.5 L912.0,96.9 L920.0,96.0 L928.0,94.0 L936.0,102.7 L944.0,111.9 L952.0,109.7 L960.0,107.0 L968.0,108.0 L976.0,107.3 L984.0,118.7 L992.0,114.6 L1000.0,116.5 L1008.0,123.1 L1016.0,126.4 L1024.0,118.2 L1032.0,121.9 L1040.0,119.2 L1048.0,121.0 L1056.0,115.2 L1064.0,111.4 L1072.0,111.8 L1080.0,102.8 L1088.0,90.7 L1096.0,85.4 L1104.0,78.9 L1112.0,72.8 L1120.0,70.6 L1128.0,79.3 L1136.0,78.5 L1144.0,74.5 L1152.0,74.7 L1160.0,71.9 L1168.0,68.7 L1176.0,66.1 L1184.0,56.5 L1192.0,52.1 L1200.0,46.0" fill="none" stroke="#22607B" stroke-width="3"/>
+  <circle cx="1200" cy="46" r="4" fill="#22607B"/>
+  <text x="1192" y="38" text-anchor="end" font-family="Inter, Helvetica, Arial, sans-serif" font-size="13" fill="#22607B">record 133,009</text>
+  <text x="800" y="152" font-family="Inter, Helvetica, Arial, sans-serif" font-size="13" fill="#8B98A5">Cat A quota premium — S$18,502 (2010) → 133,009 (record, Sep 2026)</text>
+  <line x1="800" y1="260" x2="1200" y2="260" stroke="#E7E3DC" stroke-width="1"/>
+  <path d="M800.0,222.7 L808.0,238.5 L816.0,246.5 L824.0,247.3 L832.0,252.0 L840.0,250.3 L848.0,250.0 L856.0,246.1 L864.0,257.1 L872.0,256.6 L880.0,260.0 L888.0,258.6 L896.0,258.7 L904.0,251.9 L912.0,249.2 L920.0,243.2 L928.0,209.4 L936.0,198.2 L944.0,199.5 L952.0,174.0 L960.0,180.9 L968.0,189.6 L976.0,188.3 L984.0,192.2 L992.0,198.0 L1000.0,209.8 L1008.0,199.3 L1016.0,192.4 L1024.0,210.0 L1032.0,227.1 L1040.0,228.1 L1048.0,228.7 L1056.0,230.7 L1064.0,235.0 L1072.0,238.6 L1080.0,250.9 L1088.0,250.9 L1096.0,250.0 L1104.0,254.4 L1112.0,251.8 L1120.0,246.5 L1128.0,232.9 L1136.0,230.8 L1144.0,229.1 L1152.0,228.0 L1160.0,223.4 L1168.0,217.4 L1176.0,216.9 L1184.0,217.5 L1192.0,219.3 L1200.0,220.8" fill="none" stroke="#2E7D6B" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <text x="800" y="280" font-family="Inter, Helvetica, Arial, sans-serif" font-size="13" fill="#8B98A5">Cat A quota — 336–2,218 certificates per exercise (latest 1,193)</text>
+  <text x="1208" y="306" text-anchor="end" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="16" fill="#2E7D6B">A six-repo series on Singapore's public data · 3 of 6</text>
+</svg>
