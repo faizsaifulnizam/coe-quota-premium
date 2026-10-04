@@ -9,7 +9,12 @@ FROM (SELECT month, round_no FROM exercise GROUP BY 1, 2 HAVING count(DISTINCT c
 UNION ALL SELECT 'no duplicate (month, round, category)',
        count(*) FROM (SELECT month, round_no, category FROM exercise GROUP BY 1, 2, 3 HAVING count(*) > 1)
 UNION ALL SELECT 'two rounds per month',
-       count(*) FROM (SELECT month FROM exercise GROUP BY 1 HAVING count(DISTINCT round_no) <> 2)
+       count(*) FROM (
+           SELECT month FROM exercise GROUP BY 1
+           HAVING count(DISTINCT round_no) <> 2
+              AND NOT (month = (SELECT max(month) FROM exercise)
+                       AND count(DISTINCT round_no) = 1 AND min(round_no) = 1)
+       ) -- Publisher can release latest R1 before R2; older months must be complete.
 UNION ALL SELECT 'months contiguous except the 2020 pause',
        count(*) FROM (
            SELECT month, lag(month) OVER (ORDER BY month) AS prev

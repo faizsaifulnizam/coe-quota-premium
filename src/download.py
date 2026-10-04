@@ -4,14 +4,13 @@ One official file:
   - coe-bidding-results.csv  (COE Bidding Results / Prices, dataset d_69b3380ad7e51aff3a7dcc84eba52b8a)
 
 Flow: initiate-download -> poll-download -> signed URL (data.gov.sg v1 public API).
-Run: python src/download.py [--force]   (skips if the file already exists)
+Run: python src/download.py [--force]   (validates an existing cache before reuse)
 
-Downloads land in a .part file and are structurally validated BEFORE replacing any
-existing CSV (validate-before-write; a failed pull leaves the existing file untouched):
-header set, month labels, round + category enums, comma-stripped numerics, unique
-(month, round, category) keys, 5 categories per exercise, coverage and a freshness
-floor. On success writes data/raw/pull_manifest.json (sha256, rows, coverage,
-exercises, retrieval time).
+Downloads are staged and structurally validated BEFORE publication: header set,
+month labels, round + category enums, comma-stripped numerics, unique keys,
+5 categories per exercise, coverage and freshness floors. Raw bytes and their
+manifest are published together with rollback on ordinary replacement failures;
+this does not guarantee crash/power-loss safety or atomic concurrent reads.
 """
 import argparse
 import csv
@@ -27,6 +26,9 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from src.publish import publish_files
+
 RAW = ROOT / "data/raw"
 MANIFEST = RAW / "pull_manifest.json"
 
@@ -60,7 +62,7 @@ def fetch_to_part(dataset_id, part):
         j = json.loads(get(base + "/poll-download"))
         url = (j.get("data") or {}).get("url") or ""
     except Exception as exc:  # a 403 and "not ready yet" must not look the same
-        print(f"  poll-download ({type(exc).__name__}): {exc}")
+        print(f"  poll-download ({type(exc).__name__}): {ascii(str(exc))}")
     if not url:
         get(base + "/initiate-download")
         for _ in range(15):
@@ -73,7 +75,7 @@ def fetch_to_part(dataset_id, part):
             if url:
                 break
     if not url:
-        return None, "no signed URL returned — try again in a minute"
+        return None, "no signed URL returned - try again in a minute"
     data = get(url)
     part.parent.mkdir(parents=True, exist_ok=True)
     part.write_bytes(data)
@@ -88,10 +90,18 @@ def num(v):
 def validate(text):
     """Structural validation + summary. Returns (info, problems).
 
+    Pass bytes to retain the source byte count and SHA (including CRLF and BOM).
+    Decoding is strict UTF-8; text input is retained for existing callers.
+
     Parses with the csv module: the file quotes comma-formatted thousands
     (e.g. "1,438" in bids_received) — a naive split(',') miscounts fields.
     """
-    rows = [r for r in csv.reader(io.StringIO(text.lstrip("\ufeff"))) if r and any(c.strip() for c in r)]
+    data = text if isinstance(text, bytes) else text.encode("utf-8")
+    try:
+        text = data.decode("utf-8")
+        rows = [r for r in csv.reader(io.StringIO(text.lstrip("\ufeff")), strict=True) if r and any(c.strip() for c in r)]
+    except (UnicodeDecodeError, csv.Error) as exc:
+        return None, [f"invalid UTF-8 or CSV: {ascii(str(exc))}"]
     problems = []
     if not rows:
         return None, ["file is empty"]
@@ -126,7 +136,7 @@ def validate(text):
         exercises[(month, round_no)].add(cat)
         cats[cat] += 1
         if len(problems) > 20:
-            problems.append("… stopping after 20 problems")
+            problems.append("... stopping after 20 problems")
             return None, problems
 
     dups = [k for k, v in keys.items() if v > 1]
@@ -149,8 +159,8 @@ def validate(text):
         return None, problems
 
     return {
-        "bytes": len(text.encode("utf-8")),
-        "sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
+        "bytes": len(data),
+        "sha256": hashlib.sha256(data).hexdigest(),
         "rows": len(body),
         "months": len(mset),
         "month_min": mset[0],
@@ -160,7 +170,7 @@ def validate(text):
     }, []
 
 
-def write_manifest(info, retrieved_at):
+def write_manifest(info, retrieved_at, target):
     m = {
         "source": "data.gov.sg — api-open v1 public API (signed URL flow)",
         "dataset": {
@@ -171,10 +181,7 @@ def write_manifest(info, retrieved_at):
         "retrieved_at": retrieved_at,
         "files": {FILE: info},
     }
-    MANIFEST.write_text(json.dumps(m, indent=2), encoding="utf-8")
-    print("manifest:", MANIFEST.as_posix())
-    print(f"    {FILE}: {info['bytes']} bytes · sha256 {info['sha256'][:12]}… · "
-          f"coverage {info['month_min']} → {info['month_max']} · {info['rows']} rows · {info['exercises']} exercises")
+    target.write_text(json.dumps(m, indent=2), encoding="utf-8")
 
 
 def main():
@@ -183,32 +190,48 @@ def main():
     args = ap.parse_args()
 
     out = RAW / FILE
+    manifest_part = MANIFEST.with_name(MANIFEST.name + ".part")
     if out.exists() and not args.force:
-        print("raw file already present — use --force to refresh")
-        print("  ", out.as_posix())
-        if not MANIFEST.exists():
-            info, problems = validate(out.read_text(encoding="utf-8", errors="replace"))
-            if problems:
-                raise SystemExit(f"existing {FILE} failed validation:\n  - " + "\n  - ".join(problems))
+        info, problems = validate(out.read_bytes())
+        if problems:
+            raise SystemExit(f"existing {FILE} failed validation:\n  - " + "\n  - ".join(problems))
+        if MANIFEST.exists():
+            try:
+                manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+                expected = manifest["files"][FILE]["sha256"]
+                if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+                    raise ValueError("invalid sha256")
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                raise SystemExit("cached manifest is invalid; use --force to fetch and validate a new copy") from exc
+            if info["sha256"] != expected:
+                raise SystemExit(f"cached {FILE} does not match its manifest; use --force to fetch and validate a new copy")
+        else:
             mtime = datetime.fromtimestamp(out.stat().st_mtime).astimezone().isoformat(timespec="seconds")
-            write_manifest(info, mtime)
+            try:
+                write_manifest(info, mtime, manifest_part)
+                publish_files([(manifest_part, MANIFEST)])
+            finally:
+                manifest_part.unlink(missing_ok=True)
+        print("raw cache validated; use --force to refresh")
         return 0
 
     part = out.with_name(out.name + ".part")
-    print(f"downloading {DATASET_ID} …")
-    data, err = fetch_to_part(DATASET_ID, part)
-    if err:
+    print(f"downloading {DATASET_ID} ...")
+    try:
+        _, err = fetch_to_part(DATASET_ID, part)
+        if err:
+            raise SystemExit(f"{FILE}: {err} - existing file left untouched")
+        info, problems = validate(part.read_bytes())
+        if problems:
+            raise SystemExit(f"{FILE} failed structure validation - kept existing file:\n  - " + "\n  - ".join(problems))
+        write_manifest(info, datetime.now().astimezone().isoformat(timespec="seconds"), manifest_part)
+        publish_files([(part, out), (manifest_part, MANIFEST)])
+    finally:
         part.unlink(missing_ok=True)
-        raise SystemExit(f"{FILE}: {err} — existing file left untouched")
-    text = part.read_text(encoding="utf-8", errors="replace")
-    info, problems = validate(text)
-    if problems:
-        part.unlink(missing_ok=True)
-        raise SystemExit(f"{FILE} failed structure validation — kept existing file:\n  - " + "\n  - ".join(problems))
-    part.replace(out)
-    print(f"  ok: {info['bytes']} bytes · {info['rows']} rows · {info['exercises']} exercises · "
-          f"coverage {info['month_min']} → {info['month_max']}")
-    write_manifest(info, datetime.now().astimezone().isoformat(timespec="seconds"))
+        manifest_part.unlink(missing_ok=True)
+    print(f"  ok: {info['bytes']} bytes | {info['rows']} rows | {info['exercises']} exercises | "
+          f"coverage {info['month_min']} -> {info['month_max']}")
+    print(f"manifest: {MANIFEST.name} | sha256 {info['sha256']}")
     return 0
 
 

@@ -1,9 +1,9 @@
 """S3 figures — code-generated, series style, light + dark (theme-adaptive). Run: python src/figures.py (repo root).
 
 Produces (reports/figures/), each as a light/dark pair for `<picture>` README embeds:
-  f1_quota_premium[-dark].png  — two panels (Cat A, B): quota premium (left) vs quota (right), May-2022 line
+  f1_quota_premium[-dark].png  — two panels (Cat A, B): quota premium (left) vs quota (right), definition markers
   f2_pressure[-dark].png       — two panels: bids-per-quota (top) and success rate (bottom), Cat A & B
-  f3_scatter[-dark].png        — two panels: quota vs premium scatter, pre/post May 2022 colored
+  f3_scatter[-dark].png        — two panels: quota vs premium scatter, three historical definition groups
 
 Reads the parquet via DuckDB; re-runs sql/02 so figures always match the SQL. Long titles and
 footnotes are width-checked at render size by pixel extent (not eyeballed); text clearance,
@@ -33,9 +33,11 @@ from matplotlib.font_manager import FontProperties  # noqa: E402
 from matplotlib.textpath import TextPath  # noqa: E402
 
 from src.analysis import run_script  # noqa: E402
+from src.publish import publish_files  # noqa: E402
 
 PARQUET = (ROOT / "data/processed/coe_exercises.parquet").as_posix()
 FIGDIR = ROOT / "reports/figures"
+STAGED = []  # (temporary PNG, published target); one batch per main() run
 DPI = 200
 MARGIN_PX = 40  # keep text this far from the canvas edge
 
@@ -74,9 +76,10 @@ def _source_date():
 
 
 SRC = f"Source: LTA COE bidding results (data.gov.sg), pulled {_source_date() or 'n/a'}"
-PREMIUM_NOTE = "Premium = quota premium — the lowest successful bid price for the exercise (not the PQP, the renewal price)"
+PREMIUM_NOTE = "Premium = common auction clearing premium paid by successful bidders (not PQP, the renewal price)"
 BREAK_LABEL = "Category A/B redefined\nfrom May 2022 1st exercise"
 BREAK_DATE = "2022-05-01"
+EARLIER_BREAK_DATE = "2014-02-01"
 
 
 def q(con, sql):
@@ -167,9 +170,13 @@ def assert_legend_clear(fig, label):
 
 def save(fig, name):
     p = FIGDIR / name.replace(".png", T["suffix"] + ".png")
-    fig.savefig(p)
-    plt.close(fig)
-    print(f"wrote {p.as_posix()}  ({p.stat().st_size} bytes)")
+    tmp = p.with_name(p.name + ".tmp")
+    STAGED.append((tmp, p))  # track even an incomplete write for cleanup
+    try:
+        fig.savefig(tmp, format="png")
+    finally:
+        plt.close(fig)
+    print(f"staged {p.as_posix()}  ({tmp.stat().st_size} bytes)")
 
 
 def text_px(s, size_pt):
@@ -193,7 +200,8 @@ def series(con, cat):
 
 def fig1_quota_premium(con, canvas_in=9.0):
     title = "Premiums climb to records while quotas cycle — Category A and B, 2010–2026"
-    foottext = (f"{PREMIUM_NOTE}\nNo exercises Apr–Jun 2020 (bidding pause) · vertical line: A/B redefinition · {SRC}")
+    foottext = (f"{PREMIUM_NOTE}\n"
+                f"Lines: A/B definitions changed Feb 2014 and May 2022 · no exercises Apr–Jun 2020\n{SRC}")
     assert_fits(title, 12.5, "F1 title", canvas_in)
     assert_fits(foottext, 7.5, "F1 footnote", canvas_in)
 
@@ -221,6 +229,7 @@ def fig1_quota_premium(con, canvas_in=9.0):
         axr.grid(False)
 
         ax.axvline(mdates.datestr2num(BREAK_DATE), color=T["ink"], lw=0.9, ls=":", alpha=0.9)
+        ax.axvline(mdates.datestr2num(EARLIER_BREAK_DATE), color=T["muted"], lw=0.9, ls=":", alpha=0.9)
         ax.set_title(f"Category {cat[-1]}", fontsize=10, color=T["muted"])
 
         i_max = prem.index(max(prem))
@@ -235,6 +244,8 @@ def fig1_quota_premium(con, canvas_in=9.0):
 
     axs[0].annotate(BREAK_LABEL, (mdates.datestr2num(BREAK_DATE), 142000 * 0.995), xytext=(4, -12),
                     textcoords="offset points", fontsize=8, color=T["muted"], va="top")
+    axs[0].annotate("A/B power criterion\nfrom Feb 2014", (mdates.datestr2num(EARLIER_BREAK_DATE), 142000 * 0.995),
+                    xytext=(4, -12), textcoords="offset points", fontsize=8, color=T["muted"], va="top")
     axs[1].set_xlim(mdates.date2num(rows[0][0]), mdates.date2num(rows[-1][0]) + 420)
     axs[1].set_xticks([date(y, 1, 1) for y in range(2010, 2027, 2)])
     axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
@@ -253,7 +264,7 @@ def fig1_quota_premium(con, canvas_in=9.0):
 def fig2_pressure(con, canvas_in=9.0):
     title = "Bids per quota and the success rate — the same pressure read two ways, Category A and B"
     foottext = (f"Bids per quota = bids received ÷ quota · success rate = successful bids ÷ bids received\n"
-                f"No exercises Apr–Jun 2020 · vertical line: A/B redefinition · {SRC}")
+                f"Lines: A/B definitions changed Feb 2014 and May 2022 · no exercises Apr–Jun 2020\n{SRC}")
     assert_fits(title, 12.5, "F2 title", canvas_in)
     assert_fits(foottext, 7.5, "F2 footnote", canvas_in)
 
@@ -278,6 +289,7 @@ def fig2_pressure(con, canvas_in=9.0):
         print(f"F2 ylim {field}: {min(v) - pad:.3f} – {max(v) + pad:.3f} (data {min(v):.4f} – {max(v):.4f})")
         ax.set_ylabel(ylab, fontsize=9)
         ax.axvline(mdates.datestr2num(BREAK_DATE), color=T["ink"], lw=0.9, ls=":", alpha=0.9)
+        ax.axvline(mdates.datestr2num(EARLIER_BREAK_DATE), color=T["muted"], lw=0.9, ls=":", alpha=0.9)
         ax.legend(loc="best", fontsize=8, ncol=2)
 
     # receipt: the lower panel is mechanically close to 1 / bids-per-quota (quota is
@@ -304,8 +316,10 @@ def fig2_pressure(con, canvas_in=9.0):
 
 
 def fig3_scatter(con, canvas_in=9.0):
-    title = "Same quota, higher price — premium vs quota before and after the May 2022 redefinition"
-    foottext = (f"One dot = one exercise · colour: pre-redefinition vs from May 2022 1st exercise\n{PREMIUM_NOTE} · {SRC}")
+    title = "Premium vs quota — full A/B history, with category-definition changes distinguished"
+    foottext = ("One dot = one exercise · colour distinguishes historical definitions, not comparable populations\n"
+                "Before Feb 2014 includes earlier definitions (Cat A included taxis before Aug 2012)\n"
+                f"{PREMIUM_NOTE}\n{SRC}")
     assert_fits(title, 12.5, "F3 title", canvas_in)
     assert_fits(foottext, 7.5, "F3 footnote", canvas_in)
 
@@ -316,8 +330,10 @@ def fig3_scatter(con, canvas_in=9.0):
                                         (axs[1], "Category B", (280, 1650), (15000, 160000), (400, 800, 1200, 1600))):
         rows = q(con, f"""SELECT month, quota, premium, regime FROM exercise
                           WHERE category = '{cat}' ORDER BY month, round_no""")
-        for regime, color, lbl in (("pre", T["muted"], "before May 2022"), ("post", T["teal"], "from May 2022")):
-            pts = [(float(r[1]), float(r[2])) for r in rows if r[3] == regime]
+        for lo, hi, color, lbl in ((date.min, date(2014, 2, 1), T["muted"], "earlier definitions (< Feb 2014)"),
+                                   (date(2014, 2, 1), date(2022, 5, 1), T["petrol"], "Feb 2014–Apr 2022"),
+                                   (date(2022, 5, 1), date.max, T["teal"], "from May 2022")):
+            pts = [(float(r[1]), float(r[2])) for r in rows if lo <= r[0] < hi]
             ax.scatter([p[0] for p in pts], [p[1] for p in pts], s=13, color=color,
                        edgecolors=T["edge"], linewidths=0.4, alpha=0.8, label=lbl)
         ax.set_xlim(*xlim)
@@ -332,7 +348,7 @@ def fig3_scatter(con, canvas_in=9.0):
         ax.annotate(f"{str(last[0])[:7]}: {float(last[2]):,.0f}", (float(last[1]), float(last[2])),
                     xytext=(-6, 8), textcoords="offset points", ha="right", fontsize=8, color=T["ink"])
 
-    fig.subplots_adjust(left=0.10, right=0.985, top=0.845, bottom=0.175, wspace=0.16)
+    fig.subplots_adjust(left=0.10, right=0.985, top=0.845, bottom=0.225, wspace=0.16)
     ftxt = foot(fig, foottext)
     assert_clear(fig, [(st, drawn_title(axs[0])), (st, drawn_title(axs[1])),
                        (ftxt, axs[0].xaxis.label), (ftxt, axs[1].xaxis.label),
@@ -340,7 +356,7 @@ def fig3_scatter(con, canvas_in=9.0):
     assert_inbounds(fig, "F3")
     assert_texts_clear(fig, "F3")
     assert_legend_clear(fig, "F3")
-    print("F3: two scatter panels rendered (pre/post coloured)")
+    print("F3: two scatter panels rendered (three historical definition groups)")
     save(fig, "f3_scatter.png")
 
 
@@ -349,24 +365,34 @@ def main():
 
     os.chdir(ROOT)
     FIGDIR.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect()
-    con.execute(f"CREATE OR REPLACE VIEW exercise AS SELECT * FROM read_parquet('{PARQUET}')")
-    run_script(con, ROOT / "sql/02_metrics.sql")
-    for palette in (LIGHT, DARK):
-        use_palette(palette)
-        use_series_style(dark=(palette is DARK))
-        print(f"-- rendering {'dark' if palette['suffix'] else 'light'} set --")
-        fig1_quota_premium(con)
-        fig2_pressure(con)
-        fig3_scatter(con)
-    # mirror the six figures into docs/img/ — the Pages site serves these, copied in
-    # the same run so they cannot go stale (the smoke test hash-checks the copies)
-    img = ROOT / "docs" / "img"
-    img.mkdir(parents=True, exist_ok=True)
-    for stem in ("f1_quota_premium", "f2_pressure", "f3_scatter"):
-        for sfx in ("", "-dark"):
-            (img / f"{stem}{sfx}.png").write_bytes((FIGDIR / f"{stem}{sfx}.png").read_bytes())
-    print("copied 6 figures → docs/img/")
+    STAGED.clear()
+    try:
+        with duckdb.connect() as con:
+            con.execute(f"CREATE OR REPLACE VIEW exercise AS SELECT * FROM read_parquet('{PARQUET}')")
+            run_script(con, ROOT / "sql/02_metrics.sql")
+            for palette in (LIGHT, DARK):
+                use_palette(palette)
+                use_series_style(dark=(palette is DARK))
+                print(f"-- rendering {'dark' if palette['suffix'] else 'light'} set --")
+                fig1_quota_premium(con)
+                fig2_pressure(con)
+                fig3_scatter(con)
+        # Stage all site copies from this run's PNGs, never from previous targets.
+        img = ROOT / "docs" / "img"
+        img.mkdir(parents=True, exist_ok=True)
+        for stage, target in list(STAGED):
+            mirror = img / target.name
+            tmp = mirror.with_name(mirror.name + ".tmp")
+            STAGED.append((tmp, mirror))
+            tmp.write_bytes(stage.read_bytes())
+        publish_files(STAGED)
+    finally:
+        plt.close("all")
+        for stage, _ in STAGED:
+            if stage.is_file():
+                stage.unlink(missing_ok=True)
+        STAGED.clear()
+    print("published 6 figures + 6 matching docs/img/ copies")
     print("figures done — light + dark")
 
 

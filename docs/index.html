@@ -6,7 +6,7 @@
 <title>coe-quota-premium — Pressure, not quota? Singapore's COE premium jumps</title>
 <meta name="description" content="Do COE premiums jump because quotas get tighter — or because more bids chase the same quota? A reproducible auction-by-auction split on LTA data (396 auctions, 2010–2026).">
 <meta property="og:title" content="coe-quota-premium — Pressure, not quota?">
-<meta property="og:description" content="COE premiums (Cat A/B) track bids-per-quota (ρ +0.37/+0.56) far more than quota (ρ −0.14/−0.09; Cat C/D reverse); at the top-5 increases per category, quotas moved 13 down / 11 up while bids-per-quota rose in 17 of 25.">
+<meta property="og:description" content="COE premiums (Cat A/B) track bids-per-quota (ρ +0.37/+0.55) far more than quota (ρ −0.14/−0.09; Cat C/D reverse); at the top-5 increases per category, quotas moved 13 down / 11 up while bids-per-quota rose in 17 of 25.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://faizsaifulnizam.github.io/coe-quota-premium/img/social-card.png">
 <meta property="og:image:width" content="1280">
@@ -60,13 +60,13 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
 </picture>
 </div>
 
-<p class="lead">For cars (<b>Cat A/B</b>) — not for goods vehicles or motorcycles — premium jumps travel with <b>bid-count pressure, not quota cuts</b>: premium moves track <b>bids-per-quota</b> (ρ <b>+0.37</b> Cat A / <b>+0.56</b> Cat B since May 2022) far more than <b>quota</b> (ρ <b>−0.14 / −0.09</b>); Cat C/D reverse the split (quota is their larger correlate). At the top-5 increases per category (25 jumps — not the series' 25 largest), quota moved 13 down / 11 up / 1 flat (median <b>−0.1%</b>) while bids-per-quota rose in <b>17 of 25</b> — the largest single increase of the series and Cat A's largest, both in <b>2024-01 R2</b>, with bid surges and no quota cut worth the name. But the recent high (Cat A's record <b>133,009</b>, Sep 2026) rose on a <i>recovering</i> quota — premiums follow the marginal bid value, which this file doesn't contain.</p>
+<p class="lead">Since May 2022, <b>Cat A/B premium changes</b> have a stronger descriptive association with changes in bids per quota than with quota changes. Cat C/D show the opposite ordering. Yet Cat A’s September 2026 record occurred while quota was recovering. Bid counts cannot establish causes or reveal bidders’ reserve values.</p>
 
 <div class="stats">
-  <div class="stat"><div class="n">ρ +0.37 / +0.56</div><div class="l">premium moves vs bids-per-quota, Cat A/B since May 2022 — far above vs quota (ρ −0.14 / −0.09); Cat C/D reverse (quota is their larger correlate)</div></div>
+  <div class="stat"><div class="n">ρ +0.37 / +0.55</div><div class="l">premium moves vs bids-per-quota, Cat A/B since May 2022 — far above vs quota (ρ −0.14 / −0.09); Cat C/D reverse (quota is their larger correlate)</div></div>
   <div class="stat"><div class="n">median −0.1%</div><div class="l">quota move at the top-5 increases per category (25 jumps) — 13 down / 11 up; bids-per-quota rose in 17 of 25</div></div>
-  <div class="stat"><div class="n">133,009</div><div class="l">Cat A record (2026-09) on a recovering quota — 2024 → 2026 Cat A average quota 980 → 1,252 (+28%) while the premium kept climbing; latest 131,890</div></div>
-  <div class="stat"><div class="n">1,980/1,980 · 10/10</div><div class="l">rows retained, checks passed, 0 exclusions — 396 exercises × 5 categories, 2010-01 → 2026-09</div></div>
+  <div class="stat"><div class="n">133,009</div><div class="l">Cat A record (2026-09) on a recovering quota — January–September in both years: 2024 → 2026 Cat A average quota 962 → 1,252 (+30%) while the premium kept climbing; latest 131,890</div></div>
+  <div class="stat"><div class="n">1,980/1,980 · 10/10</div><div class="l">rows retained, structural checks passed, 0 staging exclusions — two source conflicts remain; 396 exercises × 5 categories, 2010-01 → 2026-09</div></div>
 </div>
 
 <div class="fig">
@@ -74,7 +74,7 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
 <source media="(prefers-color-scheme: dark)" srcset="img/f1_quota_premium-dark.png">
 <img src="img/f1_quota_premium.png" alt="Quota premium and quota per exercise, Category A and B, 2010–2026, with the May-2022 redefinition marked">
 </picture>
-<figcaption>Quota premium (left) vs quota (right), Category A and B — the quota cycles; Cat A's premium climbs to a record, Cat B stays below its 2023 peak. Dotted line: the May-2022 A/B redefinition. No exercises Apr–Jun 2020 (bidding pause).</figcaption>
+<figcaption>Quota premium (left) vs quota (right), Category A and B — the quota cycles; Cat A's premium climbs to a record, Cat B stays below its 2023 peak. Lines mark February 2014 and May 2022 definition changes. Earlier definitions are historical context, not the earlier attribution sample. No exercises Apr–Jun 2020 (bidding pause).</figcaption>
 </div>
 
 <h2>More views</h2>
@@ -83,28 +83,50 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
   <picture><source media="(prefers-color-scheme: dark)" srcset="img/f2_pressure-dark.png"><img src="img/f2_pressure.png" alt="Bids per quota and success rate over time, Category A and B"></picture>
   <figcaption>Count pressure: bids per quota and the success rate — the lower panel is almost the reciprocal of the upper (corr 0.98 vs 1/bids-per-quota; the quota is nearly filled), so it is not a second measure. The spikes are exercises where bid counts surged relative to quota.</figcaption>
   </figure>
-  <div class="note"><b>The attribution table.</b> Premium moves vs quota vs bids-per-quota — five variants (base · including the 2020 resume · absolute S$ · Pearson · bids-%); direction and ordering stable; net of bid-count growth, quota stays weakly negative (ρ −0.20/−0.22).<br><br><a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_attribution.csv">outputs/coe_attribution.csv</a> — full write-up in the <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/decision_memo.md">decision memo</a>.</div>
+  <div class="note"><b>The attribution table.</b> Premium moves vs quota vs bids-per-quota — five A/B variants plus all-category source-conflict exclusions; A/B direction and ordering stay stable. Earlier A/B n=190 each (February 2014 R2–April 2022), later estimates start May 2022 R2. The rank-residual partial (ρ −0.20/−0.22) is descriptive, not a causal supply estimate.<br><br><a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_attribution.csv">outputs/coe_attribution.csv</a> — full write-up in the <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/decision_memo.md">decision memo</a>.</div>
 </div>
 
+<h2>What the file can and cannot say</h2>
+<p>Premium is the common final quota premium paid by every successful bidder in that category, not the lowest winning reserve price or the PQP. Bids-per-quota measures bids submitted per certificate, not unique participants; quota is announced before bidding. <a href="https://onemotoring.lta.gov.sg/content/onemotoring/home/buying/upfront-vehicle-costs/certificate-of-entitlement--coe-.html">LTA rules and worked example</a>.</p>
+<p>Two selected jumps followed quota cuts above 40%: C, 2023-02 R1, +S$8,010 after −43.6%; D, 2020-08 R1, +S$1,191 after −42.1%. Co-occurrence is not causation.</p>
+<p>Cat A included taxis before August 2012; A/B gained a power criterion in February 2014. Earlier A/B estimates therefore begin February 2014 R2, not 2010. Base sample: 1,975 changes − 5 pause − 2 May-boundary − 196 earlier-definition = 1,772.</p>
+<p>Two CSV cells disagree with <a href="https://www.lta.gov.sg/content/dam/ltagov/who_we_are/statistics_and_publications/statistics/pdf/COE_Result_2010_2014.pdf">LTA’s historical table</a>: 2010-02 R1 B quota 1,154 vs 693; 2010-01 R2 D premium S$20,090 vs S$852. Source values are unchanged; sensitivity excludes changes touching disputed cells. The apparent undersubscription is not treated as established auction behaviour.</p>
 <h2>Method</h2>
 <ol class="method">
 <li><b>Pull</b> — LTA COE bidding results from data.gov.sg; structure-validated before replacing files, SHA-256 + coverage in a manifest (1,980 rows = 396 exercises × 5 categories, 2010-01 → 2026-09). <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/src/download.py">src/download.py</a></li>
 <li><b>Audit</b> — round structure, category completeness, the 2020 pause and dirty cells resolved from the live file <i>before</i> analysis. <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/data_audit.md">docs/data_audit.md</a></li>
 <li><b>Stage &amp; check</b> — comma-formatted thousands ("1,438") parsed with a counted rule set; month + round → an ordered exercise; 10 assertions run <i>before</i> the parquet is written. <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/sql/01_staging.sql">sql/01</a> · <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/sql/05_checks.sql">sql/05</a></li>
-<li><b>Measure &amp; attribute</b> — exercise-over-exercise deltas per category; premium moves vs quota vs bids-per-quota (premium % / quota % vs bids-per-quota level change), 5 variants + a partial; the top-5 S$ increases per category. <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/src/analysis.py">src/analysis.py</a> → <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_attribution.csv">coe_attribution.csv</a> · <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_jumps.csv">coe_jumps.csv</a></li>
+<li><b>Measure &amp; attribute</b> — exercise-over-exercise deltas per category; premium moves vs quota vs bids-per-quota (premium % / quota % vs bids-per-quota level change), 5 A/B variants, source-conflict sensitivity and a partial; the top-5 positive S$ changes per category. Spearman uses average ranks for ties. <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/src/analysis.py">src/analysis.py</a> → <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_attribution.csv">coe_attribution.csv</a> · <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/outputs/coe_jumps.csv">coe_jumps.csv</a></li>
 <li><b>Draw &amp; write</b> — three figures as code, light and dark (<a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/src/figures.py">src/figures.py</a>); then the <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/decision_memo.md">decision memo</a> and the <a href="https://github.com/faizsaifulnizam/coe-quota-premium/blob/main/docs/sensitivity.md">sensitivity checks</a>.</li>
 </ol>
 
 <h2>Reproduce</h2>
+<p>Linux/macOS (Bash):</p>
 <pre><code>git clone https://github.com/faizsaifulnizam/coe-quota-premium &amp;&amp; cd coe-quota-premium
 uv venv .venv --python 3.12          # or: python -m venv .venv
-source .venv/bin/activate            # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 uv pip install -r requirements.txt   # or: pip install -r requirements.txt
 
 python src/download.py       # raw CSV → data/raw/ (gitignored; add --force to re-pull)
 python src/build_dataset.py  # staging + 10 checks → data/processed/coe_exercises.parquet
 python src/analysis.py       # pressure table + jumps + attribution + sensitivity → outputs/
-python src/figures.py        # re-renders reports/figures/ (light + dark)</code></pre>
+python src/figures.py        # re-renders reports/figures/ (light + dark)
+python tests/smoke_test.py
+python -m unittest discover -s tests -p "test_*.py"</code></pre>
+<p>Windows (PowerShell, no activation needed):</p>
+<pre><code>git clone https://github.com/faizsaifulnizam/coe-quota-premium
+cd coe-quota-premium
+$env:PYTHONUTF8 = "1"
+uv venv .venv --python 3.12
+uv pip install --python .venv\Scripts\python.exe -r requirements.txt
+
+.venv\Scripts\python.exe src/download.py
+.venv\Scripts\python.exe src/build_dataset.py
+.venv\Scripts\python.exe src/analysis.py
+.venv\Scripts\python.exe src/figures.py
+.venv\Scripts\python.exe tests/smoke_test.py
+.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"</code></pre>
+<p class="cap">The latest month may contain R1 only; older incomplete months fail. January–September receipts stay fixed to those months. CSVs, figures/site copies and raw/manifest publish as separate staged batches with rollback for ordinary exceptions, not a pipeline-wide transaction or a power-loss guarantee. A refresh requires rerunning all stages and reviewing prose against outputs.</p>
 <p class="cap">Then check <code>outputs/coe_pressure.csv</code>: the 2026-09 R1 Category A row reads premium <b>133,009</b> with quota 1,195 and bids per quota 1.43; R2 reads 131,890. And the first Category B row of <code>outputs/coe_jumps.csv</code> reads +26,990 (2024-01 R2; bids per quota 1.34 → 1.99). Data as of the 2026-10-04 pull — a later re-pull can move the newest exercise.</p>
 
 <h2>Read more</h2>

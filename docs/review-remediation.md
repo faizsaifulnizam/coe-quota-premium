@@ -1,4 +1,46 @@
-# External-review disposition — Grok review (2026-10-04)
+# External-review dispositions
+
+## Second review — ChatGPT, baseline `59aad59`
+
+**Second-review repairs and verification.** Independently recomputed the CSV associations using stdlib average ranks and read LTA’s original historical results and auction rules. The ten factual/method/pipeline findings are supported; item 11 is a reasonable readability improvement, not a factual defect.
+
+| # | Finding | Verification and repair |
+|---|---|---|
+| 1 | Earlier A/B definitions mixed; mixed-2022 memo comparison | Confirmed: taxis leave A in Aug 2012; power criterion begins Feb 2014. Restrict earlier A/B deltas to Feb 2014 R2–Apr 2022; count 196 exclusions; use matched Jan–Sep 2024/2026 comparison. Full history remains context. |
+| 2 | Only one large quota cut claimed | Confirmed: C 2023-02 R1 −43.6%; D 2020-08 R1 −42.1%. Disclose both and remove causal “clean supply” wording. |
+| 3 | Banner range and plural records | Confirmed: raw A quota range 333–2,272; B record is Oct 2023. Remove numerical banner range rather than create another dynamic generator; qualify A’s 2026 record; synchronize site banners. |
+| 4 | CSV conflict explained as auction behaviour | Confirmed disagreement, not a definitive corrected feed: LTA table B quota 693 vs CSV 1,154; D premium 852 vs 20,090. Preserve raw, disclose conflicts and test deltas touching disputed cells. |
+| 5 | Minimum ranks used for ties; double rounding | Confirmed: standard Spearman uses average ranks. Retain CSV correlation precision; round prose directly. B post becomes +0.55; C post quota −0.17 at 2 decimals. |
+| 6 | Windows CP1252 output crash | Confirmed unsafe Unicode progress messages. Use encoding-safe downloader logs plus a separate PowerShell block with PYTHONUTF8=1 for the full pipeline. |
+| 7 | Normal growth rejected; period label drifts | Confirmed exact post count and all-month two-round checks. Allow latest R1 only, retain historical completeness, require post floor rather than equality, pin Jan–Sep receipt to Sep. |
+| 8 | Per-file replacement is not batch safety | Confirmed write flow. Stage full producer batches; shared stdlib exception-rollback helper for four CSVs, twelve PNGs, raw/manifest pair. No power-loss, concurrent-writer or pipeline-wide transaction claim. |
+| 9 | Manifest bypasses cached validation | Confirmed cache early return. Always structurally validate and compare exact file-byte SHA; refuse mismatches rather than rewrite provenance. |
+| 10 | Incorrect premium/participant/quota explanations | Confirmed against LTA rules and worked S$71 example. Common clearing premium, bid submissions not unique people; quota announced before bidding. Partial correlation is descriptive. |
+| 11 | Dense opening | Style judgment accepted: short answer first; numerical evidence below. |
+
+Independent snapshot results: base n=1,772; A/B pre n=190 each. A pre quota/bpq −0.048893/+0.552081; B pre −0.078107/+0.483041. Post A −0.138064/+0.372405; B −0.094374/+0.554800; C −0.165339/+0.039635; D −0.281506/−0.061894. Conflict sensitivity changes D pre n=288→286, quota −0.122807→−0.133685, bpq +0.069450→+0.062275; other scoped category/period rows remain unchanged. These independent recomputations agree with the repaired pipeline to 12 decimal places.
+
+### Post-fix verification
+
+- Real fresh download into a clean scratch source tree: raw bytes unchanged (`361d5ae2ba641be1e834ca822e4cb66a91f42b6f7663847f42fcc4a4062b4bac`) and exact manifest byte-hash matches.
+- README pipeline commands all exit 0; staging 10/10 and analysis ALL CHECKS PASS; smoke 7/7. **39/39 regressions pass**, also with `TMPDIR` unset and standard temporary-directory fallback.
+- Independent final reviewer reproduced a portability defect in the new tests: direct `os.environ["TMPDIR"]` access gave 18/18 errors outside Hermes. Parent reproduced it, added an unset-variable check, replaced required lookup with optional stdlib fallback, and reran the full suite successfully. No other evidenced defects were reported; the parent separately verified the later ordered-correlation repair.
+- Two complete clean-tree runs reproduce **16/16 artifact hashes** (4 CSVs + 6 figures + 6 site copies); regenerated CSVs match the repaired working copy 4/4. Reused the installed Python 3.12 environment; this is not a fresh dependency-install or Linux/macOS receipt.
+- Full-precision export exposed DuckDB floating reduction-order drift (~1e-16). A focused test reproduced it before the fix. Ordered inputs to `corr` preserve full precision and produce repeatable bytes; repeatability test passes without rounding away the difference.
+- Failure injection covers later CSV staging, batch promotion, PNG render/site-copy staging and promotion, raw/manifest write/promotion, backup and rollback errors; original targets survive ordinary recoverable failures. Failed rollback retains recovery backups and reports failure, not success.
+- Growth checks accept five complete category rows for a newest R1 and both rounds; reject older incomplete months, newest R2 alone and missing categories. January–September receipts do not include synthetic October.
+- Six figure renders pass width, in-bounds, annotation-text and legend/annotation checks. Visual spot-checks of F1 light and F3 dark found no serious clipping or contradictory visible claim; automatic legend placement can still touch individual data points.
+- Final independent review completed and its portability finding repaired. This record describes the verified second-review repair; merging and deployment are separate from branch publication.
+
+Sources: [LTA historical tables](https://www.lta.gov.sg/content/dam/ltagov/who_we_are/statistics_and_publications/statistics/pdf/COE_Result_2010_2014.pdf) · [LTA auction rules](https://onemotoring.lta.gov.sg/content/onemotoring/home/buying/upfront-vehicle-costs/certificate-of-entitlement--coe-.html).
+
+---
+
+## Earlier Grok review (historical record, superseded where corrected above)
+
+The following receipts describe the earlier repair only; they are not assertions about the second-review result.
+
+### External-review disposition — Grok review (2026-10-04)
 
 **Baseline:** `main` @ `aa57835`. Review supplied 2026-10-04 (17 numbered points). Method: every checkable claim was reproduced locally against the committed outputs + raw before disposition — a review's assertion is not itself a reproduced test result. **All 17 points reproduced; all are fixed in this pass.** One further error the review did not flag was found during verification and fixed (below). Everything here is working-tree + local verification; remote publication is a separate, gated step.
 

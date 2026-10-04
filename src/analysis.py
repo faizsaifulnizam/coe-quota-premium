@@ -7,14 +7,20 @@ with quota moves (supply) and bids-per-quota moves (count pressure) using Spearm
 correlation — premium and quota as % changes, bids-per-quota as its level change (d_bpq;
 a bids-% variant ships in the sensitivity table). Descriptive only, "associated with",
 never "caused".
-The file contains bid counts, not bid values; premiums are set by the marginal
-successful bid value, which is not observable here (stated everywhere it matters).
+The file contains bid counts, not bidders' reserve values. Premium is the final
+quota premium paid by every successful bidder: the auction clearing price, not
+the lowest winning reserve price or the PQP. Bid counts are not unique participants.
 
 Sample discipline (counted, reconciled):
-  - deltas exist for every exercise after a category's first: 395 per category;
+  - deltas exist for every exercise after a category's first (395 at this snapshot);
   - the delta spanning the Apr–Jun 2020 pause is excluded (gap_spanning, 1/category);
   - for Categories A & B the delta crossing the May-2022 definition break is excluded
     (crosses_break); for C/D/E no definition changed, so the same-date delta stays.
+  - A/B attribution also requires prev_month >= Feb-2014: earlier category
+    composition changes stay visible as historical context, not comparable estimates;
+  - standard Spearman uses average ranks for ties; CSVs retain correlation precision;
+  - source-conflict sensitivity removes incoming/following deltas for D Jan-2010 R2
+    and B Feb-2010 R1, across all categories; source values and base remain unchanged.
 
 Receipts printed:
   1. counts + flag reconciliation (retained + excluded)
@@ -23,9 +29,10 @@ Receipts printed:
   4. headline reads (latest exercise, top jumps, regime medians)
   5. attribution + sensitivity tables (+ a rank-residual partial)
 
-Validation runs BEFORE any output file is written; a failing run leaves existing
-outputs untouched. Writes: outputs/coe_pressure.csv · coe_jumps.csv ·
-coe_attribution.csv · sensitivity.csv
+Validation runs before staging; all four CSVs stage before batch publication.
+Validation/staging failures preserve targets; ordinary publication failures roll
+back replacements. This is not crash/power-loss safe or atomic to concurrent readers.
+Writes: outputs/coe_pressure.csv · coe_jumps.csv · coe_attribution.csv · sensitivity.csv
 """
 import csv
 import os
@@ -35,6 +42,9 @@ from pathlib import Path
 import duckdb
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))  # support python src/analysis.py from any working directory
+from src.publish import publish_files
+
 PARQUET = (ROOT / "data/processed/coe_exercises.parquet").as_posix()
 RAW = ROOT / "data/raw/coe-bidding-results.csv"
 OUT = ROOT / "outputs"
@@ -42,11 +52,24 @@ OUT = ROOT / "outputs"
 CATS = ["Category A", "Category B", "Category C", "Category D", "Category E"]
 AB = ("'Category A', 'Category B'")
 
+# Earlier A/B definitions changed in Aug-2012 and Feb-2014; both endpoints
+# must use the Feb-2014 definition. Full history stays in pressure/jump outputs.
+AB_SCOPE = f"(category NOT IN ({AB}) OR prev_month >= DATE '2014-02-01')"
 # Sample predicates (counted + reconciled below)
 BASE_SAMPLE = (f"d_premium_pct IS NOT NULL AND NOT gap_spanning "
-               f"AND NOT (crosses_break AND category IN ({AB}))")
+               f"AND NOT (crosses_break AND category IN ({AB})) AND {AB_SCOPE}")
 INCL_GAP_SAMPLE = (f"d_premium_pct IS NOT NULL "
-                   f"AND NOT (crosses_break AND category IN ({AB}))")
+                   f"AND NOT (crosses_break AND category IN ({AB})) AND {AB_SCOPE}")
+
+# Preserve both source values; sensitivity drops incoming and following changes.
+# LTA historical tables disagree with CSV: D Jan-2010 R2 premium, B Feb-2010 R1 quota.
+SOURCE_CONFLICT_FREE = """NOT (
+    (category = 'Category D' AND (month, round_no) IN
+        ((DATE '2010-01-01', 2), (DATE '2010-02-01', 1)))
+    OR (category = 'Category B' AND (month, round_no) IN
+        ((DATE '2010-02-01', 1), (DATE '2010-02-01', 2)))
+)"""
+SOURCE_CONFLICT_SAMPLE = f"{BASE_SAMPLE} AND {SOURCE_CONFLICT_FREE}"
 
 HAND_CHECK_CELLS = [  # (month, round, category) — recomputed from the raw CSV, stdlib only
     ("2013-01", "1", "Category A"),
@@ -83,25 +106,31 @@ def attribution(con, sample, x="d_premium_pct", y_quota="d_quota_pct", y_bpq="d_
     rank=True -> Spearman (corr of ranks); rank=False -> Pearson on the raw values.
     """
     cat_filter = f"AND category IN ({cats})" if cats else ""
+    # Ordered corr inputs prevent parallel float-reduction drift in full-precision CSVs.
     if rank:
-        xr = "rank() OVER (PARTITION BY category, regime ORDER BY x)"
-        qr = "rank() OVER (PARTITION BY category, regime ORDER BY yq)"
-        br = "rank() OVER (PARTITION BY category, regime ORDER BY yb)"
+        def midrank(column):
+            return (f"(rank() OVER (PARTITION BY category, regime ORDER BY {column}) "
+                    f"+ (count(*) OVER (PARTITION BY category, regime, {column}) - 1) / 2.0)")
+        xr, qr, br = map(midrank, ("x", "yq", "yb"))
     else:
         xr, qr, br = "x", "yq", "yb"
     return q(con, f"""
         WITH base AS (SELECT category, regime, {x} AS x, {y_quota} AS yq, {y_bpq} AS yb
                       FROM deltas WHERE {sample} {cat_filter}),
         ranked AS (SELECT category, regime, {xr} AS rp, {qr} AS rq, {br} AS rb FROM base)
-        SELECT category, regime, count(*) AS n, corr(rp, rq) AS rho_quota, corr(rp, rb) AS rho_bpq
+        SELECT category, regime, count(*) AS n,
+               corr(rp, rq ORDER BY rp, rq, rb) AS rho_quota,
+               corr(rp, rb ORDER BY rp, rq, rb) AS rho_bpq
         FROM ranked GROUP BY category, regime ORDER BY category, regime""")
 
 
 def partial_rank_corr(con, sample, cats, x="d_premium_pct", y="d_quota_pct", z="d_bids_received_pct"):
     """Spearman of x vs y net of z — rank-residual correlation (a printed receipt).
 
-    The quota link is confounded (bid growth raises quota mechanically, and
-    bids-per-quota has quota in its denominator), so net bids % out."""
+    Bids-per-quota includes quota in its denominator. This partial correlation
+    conditions on bid-count growth; it does not identify a causal supply effect.
+    Quotas are announced before bidding; bid growth does not mechanically raise them.
+    """
     def ranks(v):
         order = sorted(range(len(v)), key=lambda i: v[i])
         rk = [0.0] * len(v)
@@ -129,15 +158,16 @@ def partial_rank_corr(con, sample, cats, x="d_premium_pct", y="d_quota_pct", z="
 
 
 def write_csv(path, header, rows):
-    """Write via a temp file + atomic replace; LF endings so `git diff --quiet`
-    holds on every platform (csv.writer's default is CRLF)."""
+    """Stage only; return (staged, target) for complete-batch publication.
+
+    LF endings keep artifacts stable across platforms (csv defaults to CRLF).
+    """
     tmp = path.with_name(path.name + ".tmp")
     with tmp.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f, lineterminator="\n")
         w.writerow(header)
         w.writerows(rows)
-    os.replace(tmp, path)
-    print(f"wrote: {path.as_posix()}  ({path.stat().st_size} bytes, {len(rows)} rows)")
+    return tmp, path
 
 
 def r(x, nd):
@@ -165,11 +195,20 @@ def main():
     gap = q(con, "SELECT count(*) FROM deltas WHERE gap_spanning")[0][0]
     cross = q(con, "SELECT count(*) FROM deltas WHERE crosses_break")[0][0]
     base_n = q(con, f"SELECT count(*) FROM deltas WHERE {BASE_SAMPLE}")[0][0]
-    excluded = n_deltas - 5 - base_n   # -5 first-rows have no delta at all
+    available, gap_n, break_n, scope_n = q(con, f"""
+        SELECT count(*),
+               count(*) FILTER (WHERE gap_spanning),
+               count(*) FILTER (WHERE NOT gap_spanning AND crosses_break AND category IN ({AB})),
+               count(*) FILTER (WHERE NOT gap_spanning
+                   AND NOT (crosses_break AND category IN ({AB})) AND NOT {AB_SCOPE})
+        FROM deltas WHERE d_premium_pct IS NOT NULL""")[0]
+    excluded = gap_n + break_n + scope_n  # disjoint, independently counted reasons
+    first_n = q(con, "SELECT count(*) FROM deltas WHERE d_premium_pct IS NULL")[0][0]
     print(f"flags: gap_spanning {gap} (expect 5) · crosses_break {cross} (expect 5)")
-    print(f"attribution sample: {base_n} deltas kept of {n_deltas - 5} · excluded {excluded} "
-          f"(gap 5 + A/B break-crossing 2)")
-    ok_recon = gap == 5 and cross == 5 and base_n == (n_deltas - 5 - 7)
+    print(f"attribution sample: {base_n} deltas kept of {available} · excluded {excluded} "
+          f"(gap {gap_n} + A/B break-crossing {break_n} + early A/B scope {scope_n})")
+    ok_recon = (gap == 5 and cross == 5 and first_n == len(CATS)
+                and base_n + excluded == available and available + first_n == n_deltas)
     print(f"   [{'PASS' if ok_recon else 'FAIL'}] exclusion reconciliation (kept + excluded == deltas)")
     failed |= not ok_recon
 
@@ -187,8 +226,9 @@ def main():
     print(f"   [{'PASS' if bad == 0 else 'FAIL'}] deltas consistent with their own values ({bad} violations)")
     failed |= bad != 0
     pre_post = q(con, "SELECT regime, count(DISTINCT (month, round_no)) FROM exercise GROUP BY 1 ORDER BY 1")
-    print(f"   regimes: {pre_post} (expect pre 290 · post 106 exercises)")
-    failed |= pre_post != [("post", 106), ("pre", 290)]
+    print(f"   regimes: {pre_post} (expect pre 290 · post >=106 exercises)")
+    counts = dict(pre_post)
+    failed |= counts.get("pre") != 290 or counts.get("post", 0) < 106
 
     # ---- hand-checks: 3 dated cells from the RAW CSV, stdlib only ----
     print()
@@ -216,8 +256,8 @@ def main():
     # Basis: the S$ change — the unit COE prices are quoted in; increases only.
     # % moves on the early low-base values are dominated by small-denominator noise.
     # Excluded from this ranking (both stay in coe_pressure.csv, counted): the
-    # 2020-resume delta (gap_spanning — out of every statistic) and the known source
-    # anomaly Cat D 2010-01 R2 (889 → 20,090, reverting next exercise).
+    # 2020-resume delta (out of base attribution, tested in sensitivity) and the
+    # disputed Cat D 2010-01 R2 spike (889 → 20,090, reverting next exercise).
     print()
     print("== jump events (top 5 S$ increases per category; resume + Cat D anomaly excluded) ==")
     jumps = q(con, f"""
@@ -249,20 +289,32 @@ def main():
         print(f"   {cat:<12} {regime:<5} {int(n):>4} {float(rq_):>15.3f} {float(rb_):>13.3f}")
 
     print()
-    print("== sensitivity (variants; Categories A & B) ==")
+    print("== sensitivity (A/B variants + all-category source-conflict check) ==")
     sens = []
+    conflict_n = q(con, f"SELECT count(*) FROM deltas WHERE d_premium_pct IS NOT NULL "
+                       f"AND NOT {SOURCE_CONFLICT_FREE}")[0][0]
+    clean_n = q(con, f"SELECT count(*) FROM deltas WHERE {SOURCE_CONFLICT_SAMPLE}")[0][0]
+    conflict_excluded = q(con, f"SELECT count(*) FROM deltas WHERE {BASE_SAMPLE} "
+                              f"AND NOT {SOURCE_CONFLICT_FREE}")[0][0]
+    ok_conflict = clean_n + conflict_excluded == base_n
+    print(f"   source conflicts: {conflict_n} affected deltas; "
+          f"[{'PASS' if ok_conflict else 'FAIL'}] {clean_n} retained + "
+          f"{conflict_excluded} excluded == {base_n} base (B pair already outside A/B scope)")
+    failed |= not ok_conflict
     variants = [
         ("base: % changes, gap + break deltas excluded", attribution(con, BASE_SAMPLE, cats=AB)),
         ("including the 2020 resume delta", attribution(con, INCL_GAP_SAMPLE, cats=AB)),
         ("absolute S$ change basis", attribution(con, BASE_SAMPLE, x="d_premium", y_quota="d_quota", cats=AB)),
         ("Pearson on % changes", attribution(con, BASE_SAMPLE, rank=False, cats=AB)),
         ("bids % (not bids-per-quota)", attribution(con, BASE_SAMPLE, y_bpq="d_bids_received_pct", cats=AB)),
+        ("excluding deltas touching source conflicts (all categories)",
+         attribution(con, SOURCE_CONFLICT_SAMPLE)),
     ]
     for label, rows in variants:
         for cat, regime, n, rq_, rb_ in rows:
             sens.append((label, cat, regime, n, rq_, rb_))
             print(f"   {label:<44} {cat:<12} {regime:<5} n={int(n):>4} rho_quota {float(rq_):+.3f} · rho_bpq {float(rb_):+.3f}")
-    failed |= len(sens) != 20
+    failed |= len(sens) != 30
 
     print()
     print("== partial: premium % ~ quota % | bids % (rank-residual, post-2022) ==")
@@ -281,7 +333,8 @@ def main():
               f"premium {int(prem):>7,} · bpq {float(bpq):.2f} · sr {float(sr):.1%}")
     med = q(con, """SELECT category, regime, median(quota), median(bids_per_quota), median(success_rate), median(premium)
                     FROM exercise GROUP BY 1, 2 ORDER BY 1, 2""")
-    print("   regime medians (quota · bpq · success rate · premium):")
+    print("   regime medians (full-history context; pre A/B mixes earlier definitions; "
+          "quota · bpq · success rate · premium):")
     for cat, regime, mq, mb, ms, mp in med:
         print(f"   {cat:<12} {regime:<5} quota {float(mq):>7,.0f} · bpq {float(mb):.2f} · sr {float(ms):.1%} · premium {float(mp):>8,.0f}")
     def cat_a_avg(lo, hi):
@@ -290,7 +343,7 @@ def main():
                             AND month BETWEEN DATE '{lo}' AND DATE '{hi}'""")[0]
     a24f = cat_a_avg("2024-01-01", "2024-12-31")
     a24j = cat_a_avg("2024-01-01", "2024-09-30")
-    a26 = cat_a_avg("2026-01-01", "2026-12-31")
+    a26 = cat_a_avg("2026-01-01", "2026-09-30")
     print(f"   Cat A 2024 (full) → 2026 (Jan–Sep): quota {float(a24f[0]):,.0f} → {float(a26[0]):,.0f} "
           f"({100 * (float(a26[0]) / float(a24f[0]) - 1):+.1f}%) · premium {float(a24f[1]):,.0f} → {float(a26[1]):,.0f}")
     print(f"   Cat A Jan–Sep both years:            quota {float(a24j[0]):,.0f} → {float(a26[0]):,.0f} "
@@ -306,18 +359,19 @@ def main():
         print("validation failed — output files NOT written (existing outputs left untouched)")
         sys.exit(1)
 
-    # ---- all validation passed: write the outputs ----
+    # ---- all validation passed: stage the complete output batch ----
     print()
+    staged = []
     press = q(con, """SELECT month, round_no, category, quota, bids_received, bids_success, premium,
                              bids_per_quota, success_rate, regime
                       FROM exercise ORDER BY category, month, round_no""")
-    write_csv(OUT / "coe_pressure.csv",
+    staged.append(write_csv(OUT / "coe_pressure.csv",
               ["month", "round", "category", "quota", "bids_received", "bids_success", "premium",
                "bids_per_quota", "success_rate", "regime"],
               [[str(m), int(rd), cat, int(qq), int(rc), int(sc), int(pr), r(bq, 4), r(sr, 4), rg]
-               for m, rd, cat, qq, rc, sc, pr, bq, sr, rg in press])
+               for m, rd, cat, qq, rc, sc, pr, bq, sr, rg in press]))
 
-    write_csv(OUT / "coe_jumps.csv",
+    staged.append(write_csv(OUT / "coe_jumps.csv",
               ["category", "rank_in_category", "month", "round", "prev_month", "prev_round",
                "premium_before", "premium_after", "d_premium", "d_premium_pct",
                "quota_before", "quota_after", "d_quota_pct", "bpq_before", "bpq_after", "d_bpq",
@@ -325,15 +379,19 @@ def main():
               [[j[0], int(j[20]), str(j[1])[:7], int(j[2]), str(j[3])[:7], int(j[4]),
                 int(j[5]), int(j[6]), int(j[7]), r(j[8], 2),
                 int(j[9]), int(j[10]), r(j[11], 2), r(j[12], 3), r(j[13], 3), r(j[14], 3),
-                r(j[15], 4), r(j[16], 4), j[17], bool(j[18]), bool(j[19])] for j in jumps])
+                r(j[15], 4), r(j[16], 4), j[17], bool(j[18]), bool(j[19])] for j in jumps]))
 
-    write_csv(OUT / "coe_attribution.csv",
+    staged.append(write_csv(OUT / "coe_attribution.csv",
               ["category", "regime", "n", "rho_premium_quota", "rho_premium_bpq"],
-              [[cat, regime, int(n), r(rq_, 3), r(rb_, 3)] for cat, regime, n, rq_, rb_ in attr])
+              [[cat, regime, int(n), rq_, rb_] for cat, regime, n, rq_, rb_ in attr]))
 
-    write_csv(OUT / "sensitivity.csv",
+    staged.append(write_csv(OUT / "sensitivity.csv",
               ["variant", "category", "regime", "n", "rho_premium_quota", "rho_premium_bpq"],
-              [[v, cat, regime, int(n), r(rq_, 3), r(rb_, 3)] for v, cat, regime, n, rq_, rb_ in sens])
+              [[v, cat, regime, int(n), rq_, rb_] for v, cat, regime, n, rq_, rb_ in sens]))
+
+    publish_files(staged)
+    for _, path in staged:
+        print(f"wrote: {path.as_posix()}  ({path.stat().st_size} bytes)")
 
     print()
     print("RESULT: ALL CHECKS PASS")
