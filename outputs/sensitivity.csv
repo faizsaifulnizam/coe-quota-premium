@@ -1,21 +1,31 @@
 variant,category,regime,n,rho_premium_quota,rho_premium_bpq
-"base: % changes, gap + break deltas excluded",Category A,post,105,-0.139,0.372
-"base: % changes, gap + break deltas excluded",Category A,pre,288,-0.033,0.366
-"base: % changes, gap + break deltas excluded",Category B,post,105,-0.094,0.555
-"base: % changes, gap + break deltas excluded",Category B,pre,288,-0.081,0.421
-including the 2020 resume delta,Category A,post,105,-0.139,0.372
-including the 2020 resume delta,Category A,pre,289,-0.026,0.371
-including the 2020 resume delta,Category B,post,105,-0.094,0.555
-including the 2020 resume delta,Category B,pre,289,-0.07,0.426
-absolute S$ change basis,Category A,post,105,-0.113,0.388
-absolute S$ change basis,Category A,pre,288,-0.02,0.342
-absolute S$ change basis,Category B,post,105,-0.08,0.545
-absolute S$ change basis,Category B,pre,288,-0.065,0.401
-Pearson on % changes,Category A,post,105,-0.22,0.446
-Pearson on % changes,Category A,pre,288,-0.168,0.326
-Pearson on % changes,Category B,post,105,-0.27,0.54
-Pearson on % changes,Category B,pre,288,-0.107,0.245
-bids % (not bids-per-quota),Category A,post,105,-0.139,0.34
-bids % (not bids-per-quota),Category A,pre,288,-0.033,0.32
-bids % (not bids-per-quota),Category B,post,105,-0.094,0.504
-bids % (not bids-per-quota),Category B,pre,288,-0.081,0.388
+"base: % changes, gap + break deltas excluded",Category A,post,105,-0.13806446934634561,0.37240499899421603
+"base: % changes, gap + break deltas excluded",Category A,pre,190,-0.04889315461568688,0.5520809003311069
+"base: % changes, gap + break deltas excluded",Category B,post,105,-0.09437410129424795,0.5547999170640681
+"base: % changes, gap + break deltas excluded",Category B,pre,190,-0.07810684676871935,0.4830409356725147
+including the 2020 resume delta,Category A,post,105,-0.13806446934634561,0.37240499899421603
+including the 2020 resume delta,Category A,pre,191,-0.03711952120666406,0.5579636263433453
+including the 2020 resume delta,Category B,post,105,-0.09437410129424795,0.5547999170640681
+including the 2020 resume delta,Category B,pre,191,-0.06179376156945496,0.49111669881510056
+absolute S$ change basis,Category A,post,105,-0.114450286483861,0.386211722659977
+absolute S$ change basis,Category A,pre,190,-0.038235664567968244,0.5238730503142499
+absolute S$ change basis,Category B,post,105,-0.077678795395998,0.5450177147509351
+absolute S$ change basis,Category B,pre,190,-0.07639665546992393,0.48159086297450654
+Pearson on % changes,Category A,post,105,-0.21999089166415087,0.44566538833875585
+Pearson on % changes,Category A,pre,190,-0.18634948962341105,0.6003362711970452
+Pearson on % changes,Category B,post,105,-0.2701505814666934,0.5399157350871799
+Pearson on % changes,Category B,pre,190,-0.15624662728347366,0.500287203314814
+bids % (not bids-per-quota),Category A,post,105,-0.13806446934634561,0.3405324009891257
+bids % (not bids-per-quota),Category A,pre,190,-0.04889315461568688,0.49646563899528373
+bids % (not bids-per-quota),Category B,post,105,-0.09437410129424795,0.5035779172158661
+bids % (not bids-per-quota),Category B,pre,190,-0.07810684676871935,0.4193896608886964
+excluding deltas touching source conflicts (all categories),Category A,post,105,-0.13806446934634561,0.37240499899421603
+excluding deltas touching source conflicts (all categories),Category A,pre,190,-0.04889315461568688,0.5520809003311069
+excluding deltas touching source conflicts (all categories),Category B,post,105,-0.09437410129424795,0.5547999170640681
+excluding deltas touching source conflicts (all categories),Category B,pre,190,-0.07810684676871935,0.4830409356725147
+excluding deltas touching source conflicts (all categories),Category C,post,106,-0.16533881667465944,0.03963523691966644
+excluding deltas touching source conflicts (all categories),Category C,pre,288,-0.17309504700842648,0.11260393684015979
+excluding deltas touching source conflicts (all categories),Category D,post,106,-0.2815062657033241,-0.06189400179882553
+excluding deltas touching source conflicts (all categories),Category D,pre,286,-0.13368512797431928,0.062274919855447475
+excluding deltas touching source conflicts (all categories),Category E,post,106,0.04018816725134743,0.23215356324155456
+excluding deltas touching source conflicts (all categories),Category E,pre,288,-0.09187553007197367,-0.022813860120805968
