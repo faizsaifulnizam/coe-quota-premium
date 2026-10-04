@@ -158,6 +158,6 @@ Code: MIT. Data: Singapore Open Data Licence — © Land Transport Authority, vi
 
 ---
 
-*Part of a six-repo series on Singapore’s public data:* **[hdb-resale-mart](https://github.com/faizsaifulnizam/hdb-resale-mart)** · **[card-book-quality](https://github.com/faizsaifulnizam/card-book-quality)** · **[retail-sales-split](https://github.com/faizsaifulnizam/retail-sales-split)** · **coe-category-break · hdb-lease-slope**
+*Six-on-SG: six Singapore-data analyses plus one AI workflow — seven repos:* **[hdb-resale-mart](https://github.com/faizsaifulnizam/hdb-resale-mart)** · **[card-book-quality](https://github.com/faizsaifulnizam/card-book-quality)** · **[retail-sales-split](https://github.com/faizsaifulnizam/retail-sales-split)** · **coe-category-break · hdb-lease-slope** · **[ai-analyst-workflow](https://github.com/faizsaifulnizam/ai-analyst-workflow)** (the AI-workflow add)
 
 *If you found this useful, a star helps others find it.*
