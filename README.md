@@ -12,6 +12,8 @@
 
 **Status:** built 2026-10-04; second external-review repairs documented in [review dispositions](docs/review-remediation.md). Results below describe the **2026-10-04 pull**, through September 2026. Part of a six-repo series on Singapore’s public data.
 
+**Intended use:** For vehicle-cost planning, this is a market-monitoring brief showing why a quota-only story is insufficient. It does not predict premiums or tell you when to bid, and a budget choice still needs current quotes, purchase deadlines and fleet needs outside this dataset.
+
 ## Key numbers (all reproducible)
 
 - **Association, May 2022 onward:** premium changes vs bids-per-quota changes: Spearman ρ **+0.37 / +0.55** for A/B; vs quota changes: **−0.14 / −0.09**. For C/D, quota has the larger absolute association: **−0.17 / −0.28**, versus bids-per-quota **+0.04 / −0.06**. Earlier, definition-consistent A/B samples have **190 changes each**: quota **−0.049 / −0.078**, bids-per-quota **+0.552 / +0.483** ([attribution CSV](outputs/coe_attribution.csv)).
