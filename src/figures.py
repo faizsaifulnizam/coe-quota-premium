@@ -209,19 +209,18 @@ def fig1_quota_premium(con, canvas_in=9.0):
     st = fig.suptitle(title, x=0.012, y=0.985, ha="left", fontsize=12.5, color=T["ink"])
     summary = []
 
-    for ax, cat, ylim_p, ylim_q in ((axs[0], "Category A", (15000, 142000), (300, 2400)),
-                                    (axs[1], "Category B", (15000, 160000), (280, 1650))):
+    for ax, cat in zip(axs, ('Category A', 'Category B')):
         rows = series(con, cat)
         xs = [r[0] for r in rows]
         prem = [float(r[5]) for r in rows]
         quota = [float(r[1]) for r in rows]
 
         ax.plot(xs, prem, color=T["petrol"], lw=1.9, label="quota premium (S$, left)")
-        ax.set_ylim(*ylim_p)
+        ax.margins(y=0.15)
         ax.set_ylabel("S$ (premium)", fontsize=9)
         axr = ax.twinx()
         axr.plot(xs, quota, color=T["teal"], lw=1.4, ls="--", label="quota (certificates, right)")
-        axr.set_ylim(*ylim_q)
+        axr.margins(y=0.10)
         axr.set_ylabel("certificates per exercise", fontsize=9)
         for sp in axr.spines.values():
             sp.set_visible(False)
@@ -242,10 +241,10 @@ def fig1_quota_premium(con, canvas_in=9.0):
         h2, l2 = axr.get_legend_handles_labels()
         ax.legend(h1 + h2, l1 + l2, loc="best", fontsize=8)
 
-    axs[0].annotate(BREAK_LABEL, (mdates.datestr2num(BREAK_DATE), 142000 * 0.995), xytext=(4, -12),
-                    textcoords="offset points", fontsize=8, color=T["muted"], va="top")
-    axs[0].annotate("A/B power criterion\nfrom Feb 2014", (mdates.datestr2num(EARLIER_BREAK_DATE), 142000 * 0.995),
-                    xytext=(4, -12), textcoords="offset points", fontsize=8, color=T["muted"], va="top")
+    axs[0].annotate(BREAK_LABEL, (mdates.datestr2num(BREAK_DATE), 0.995), xytext=(4, -12),
+                    xycoords=axs[0].get_xaxis_transform(), textcoords="offset points", fontsize=8, color=T["muted"], va="top")
+    axs[0].annotate("A/B power criterion\nfrom Feb 2014", (mdates.datestr2num(EARLIER_BREAK_DATE), 0.995),
+                    xycoords=axs[0].get_xaxis_transform(), xytext=(4, -12), textcoords="offset points", fontsize=8, color=T["muted"], va="top")
     axs[1].set_xlim(mdates.date2num(rows[0][0]), mdates.date2num(rows[-1][0]) + 420)
     axs[1].set_xticks([date(y, 1, 1) for y in range(2010, 2027, 2)])
     axs[1].xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
@@ -326,8 +325,7 @@ def fig3_scatter(con, canvas_in=9.0):
     fig, axs = plt.subplots(1, 2, figsize=(canvas_in, 4.9), sharey=False)
     st = fig.suptitle(title, x=0.012, y=0.98, ha="left", fontsize=12.5, color=T["ink"])
 
-    for ax, cat, xlim, ylim, xticks in ((axs[0], "Category A", (300, 2400), (15000, 142000), (500, 1000, 1500, 2000)),
-                                        (axs[1], "Category B", (280, 1650), (15000, 160000), (400, 800, 1200, 1600))):
+    for ax, cat in zip(axs, ('Category A', 'Category B')):
         rows = q(con, f"""SELECT month, quota, premium, regime FROM exercise
                           WHERE category = '{cat}' ORDER BY month, round_no""")
         for lo, hi, color, lbl in ((date.min, date(2014, 2, 1), T["muted"], "earlier definitions (< Feb 2014)"),
@@ -336,17 +334,15 @@ def fig3_scatter(con, canvas_in=9.0):
             pts = [(float(r[1]), float(r[2])) for r in rows if lo <= r[0] < hi]
             ax.scatter([p[0] for p in pts], [p[1] for p in pts], s=13, color=color,
                        edgecolors=T["edge"], linewidths=0.4, alpha=0.8, label=lbl)
-        ax.set_xlim(*xlim)
-        ax.set_ylim(*ylim)
-        ax.set_xticks(list(xticks))  # explicit — the default locator emits out-of-range edge ticks
+        ax.margins(x=0.10, y=0.15)
+        ax.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(nbins=4, prune='both'))
         ax.set_xlabel("quota (certificates per exercise)", fontsize=9)
         if ax is axs[0]:
             ax.set_ylabel("quota premium (S$)", fontsize=9)
-        ax.set_title(f"Category {cat[-1]}", fontsize=10, color=T["muted"])
         ax.legend(loc="best", fontsize=8)
         last = rows[-1]
-        ax.annotate(f"{str(last[0])[:7]}: {float(last[2]):,.0f}", (float(last[1]), float(last[2])),
-                    xytext=(-6, 8), textcoords="offset points", ha="right", fontsize=8, color=T["ink"])
+        ax.set_title(f"Category {cat[-1]} · {str(last[0])[:7]}: {float(last[2]):,.0f}",
+                     fontsize=10, color=T["muted"])
 
     fig.subplots_adjust(left=0.10, right=0.985, top=0.845, bottom=0.225, wspace=0.16)
     ftxt = foot(fig, foottext)
@@ -368,7 +364,8 @@ def main():
     STAGED.clear()
     try:
         with duckdb.connect() as con:
-            con.execute(f"CREATE OR REPLACE VIEW exercise AS SELECT * FROM read_parquet('{PARQUET}')")
+            from src.dataset import load_exercise
+            load_exercise(con, ROOT, PARQUET)
             run_script(con, ROOT / "sql/02_metrics.sql")
             for palette in (LIGHT, DARK):
                 use_palette(palette)

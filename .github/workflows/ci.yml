@@ -10,8 +10,13 @@ permissions:
 
 jobs:
   smoke:
-    name: smoke tests
+    name: frozen replay and regressions
     runs-on: ubuntu-latest
+    env:
+      PYTHONUTF8: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
     steps:
       - uses: actions/checkout@v7
 
@@ -19,8 +24,36 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install pinned analysis and render dependencies
+        run: python -m pip install -r requirements.txt
+
       - name: Compile sources
         run: python -m compileall -q src
 
       - name: Check committed outputs, figures and banners
         run: python tests/smoke_test.py
+
+      # No event payloads are interpolated into shell commands; replay uses tracked inputs.
+      - name: Replay frozen source without publisher access
+        run: |
+          python src/download.py
+          python src/build_dataset.py
+          python src/analysis.py
+          python src/figures.py
+          git diff --exit-code -- 'outputs/*.csv'
+
+      - name: Substantive regression suite (no skips)
+        run: |
+          python - <<'PY'
+          import sys, unittest
+          suite = unittest.defaultTestLoader.discover('tests', pattern='test_*.py')
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sys.exit(not result.wasSuccessful() or bool(result.skipped) or result.testsRun == 0)
+          PY
+
+      - name: Repeat render hashes in the same environment
+        run: |
+          sha256sum reports/figures/*.png docs/img/f*.png > "$RUNNER_TEMP/figures.sha256"
+          python src/figures.py
+          sha256sum -c "$RUNNER_TEMP/figures.sha256"
+          python tests/smoke_test.py

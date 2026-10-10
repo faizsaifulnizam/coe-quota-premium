@@ -1,0 +1,27 @@
+{
+  "source": "data.gov.sg \u2014 api-open v1 public API (signed URL flow)",
+  "dataset": {
+    "id": "d_69b3380ad7e51aff3a7dcc84eba52b8a",
+    "url": "https://data.gov.sg/datasets/d_69b3380ad7e51aff3a7dcc84eba52b8a/view",
+    "name": "COE Bidding Results / Prices (LTA)"
+  },
+  "retrieved_at": "2026-10-04T01:10:53+08:00",
+  "files": {
+    "coe-bidding-results.csv": {
+      "bytes": 78695,
+      "sha256": "361d5ae2ba641be1e834ca822e4cb66a91f42b6f7663847f42fcc4a4062b4bac",
+      "rows": 1980,
+      "months": 198,
+      "month_min": "2010-01",
+      "month_max": "2026-09",
+      "exercises": 396,
+      "categories": [
+        "Category A",
+        "Category B",
+        "Category C",
+        "Category D",
+        "Category E"
+      ]
+    }
+  }
+}

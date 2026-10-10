@@ -13,6 +13,8 @@ models/*
 # CSVs are ignored by default; published small outputs are exempted
 *.csv
 !outputs/**/*.csv
+!data/raw/coe-bidding-results.csv
+!data/raw/pull_manifest.json
 
 # ---- python and notebooks ----
 .venv/

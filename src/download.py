@@ -38,10 +38,11 @@ DATASET_ID = "d_69b3380ad7e51aff3a7dcc84eba52b8a"
 FILE = "coe-bidding-results.csv"
 
 HEADER = ["month", "bidding_no", "vehicle_class", "quota", "bids_success", "bids_received", "premium"]
-MONTH = re.compile(r"^(\d{4})-(\d{2})$")
+MONTH = re.compile(r"([0-9]{4})-([0-9]{2})")
 CATEGORIES = {"Category A", "Category B", "Category C", "Category D", "Category E"}
 ROUNDS = {"1", "2"}
-NUM = re.compile(r"^\d+$")          # after comma-strip; no negatives/decimals in this file
+NUM = re.compile(r"(?:[0-9]+|[1-9][0-9]{0,2}(?:,[0-9]{3})+)")
+BIGINT_MAX = 9223372036854775807
 
 # Freshness + coverage floors: a truncated or stale pull must fail loudly.
 MONTH_FLOOR_EARLY = "2010-03"        # data must start at/before this month
@@ -120,8 +121,8 @@ def validate(text):
             problems.append(f"row {i + 2} has {len(r)} fields, expected {len(HEADER)}")
             continue
         month, round_no, cat = r[0], r[1], r[2]
-        m = MONTH.match(month)
-        if not m or not (1 <= int(m.group(2)) <= 12):
+        m = MONTH.fullmatch(month)
+        if not m or not (1 <= int(m.group(1)) <= 9999 and 1 <= int(m.group(2)) <= 12):
             problems.append(f"row {i + 2}: bad month '{month}'")
             continue
         if round_no not in ROUNDS:
@@ -129,7 +130,10 @@ def validate(text):
         if cat not in CATEGORIES:
             problems.append(f"row {i + 2}: unknown vehicle_class '{cat}'")
         for f in ("quota", "bids_success", "bids_received", "premium"):
-            if not NUM.match(num(r[HEADER.index(f)])):
+            value = r[HEADER.index(f)]
+            digits = num(value).lstrip('0') or '0'
+            if (not NUM.fullmatch(value) or len(digits) > 19
+                    or int(digits) > BIGINT_MAX):
                 problems.append(f"row {i + 2}: non-numeric {f} '{r[HEADER.index(f)]}'")
         months.append(month)
         keys[(month, round_no, cat)] += 1

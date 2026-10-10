@@ -29,7 +29,7 @@ class FiguresPublicationTest(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
         for relative in ("sql/02_metrics.sql", "data/processed/coe_exercises.parquet",
-                         "data/raw/pull_manifest.json"):
+                         "data/raw/pull_manifest.json", "data/raw/coe-bidding-results.csv"):
             target = self.root / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, target)
@@ -57,6 +57,70 @@ class FiguresPublicationTest(unittest.TestCase):
             self.assertTrue(target.read_bytes() == self.before[target], f"changed previous target: {target}")
         self.assertFalse(list(self.root.rglob("*.tmp")), "staged files leaked after failure")
         self.assertFalse(list(self.root.rglob("*.bak")), "rollback backups leaked")
+
+    def test_extended_valid_source_keeps_every_data_mark_inside_axes(self):
+        self.extended_source_marks()
+
+    def test_extended_premium_keeps_every_data_mark_inside_axes(self):
+        self.extended_source_marks(premium='200000')
+
+    def extended_source_marks(self, premium=None):
+        import csv
+        import json
+        import subprocess
+        from src import download
+        raw = self.root / 'data/raw/coe-bidding-results.csv'
+        with raw.open(newline='', encoding='utf-8') as f:
+            rows = list(csv.DictReader(f))
+        for row in rows:
+            if (row['month'], row['bidding_no'], row['vehicle_class']) == ('2026-08', '1', 'Category A'):
+                row['quota'] = '3000'
+                if premium is not None:
+                    row['premium'] = premium
+        with raw.open('w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=download.HEADER, lineterminator='\n')
+            writer.writeheader()
+            writer.writerows(rows)
+        manifest_path = self.root / 'data/raw/pull_manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['files'][download.FILE] = download.validate(raw.read_bytes())[0]
+        manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+        shutil.copytree(ROOT / 'src', self.root / 'src')
+        shutil.copy2(ROOT / 'sql/01_staging.sql', self.root / 'sql/01_staging.sql')
+        shutil.copy2(ROOT / 'sql/05_checks.sql', self.root / 'sql/05_checks.sql')
+        result = subprocess.run([sys.executable, str(self.root / 'src/build_dataset.py')],
+                                cwd=self.root, capture_output=True, text=True, encoding='utf-8')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        violations, coverage = [], {}
+        original = Figure.savefig
+        def observe(fig, path, *args, **kwargs):
+            name = Path(path).name
+            marks = 0
+            for ax in fig.axes:
+                xlo, xhi = ax.get_xlim()
+                ylo, yhi = ax.get_ylim()
+                for line in ax.lines:
+                    if len(line.get_ydata()) > 2:
+                        for x, y in zip(line.get_xdata(orig=False), line.get_ydata(orig=False)):
+                            marks += 1
+                            if not (xlo <= x <= xhi and ylo <= y <= yhi):
+                                violations.append((name, float(x), float(y), ax.get_xlim(), ax.get_ylim()))
+                for collection in ax.collections:
+                    for x, y in collection.get_offsets():
+                        marks += 1
+                        if not (xlo <= x <= xhi and ylo <= y <= yhi):
+                            violations.append((name, float(x), float(y), ax.get_xlim(), ax.get_ylim()))
+            coverage[name] = marks
+            return original(fig, path, *args, **kwargs)
+        with patch.object(Figure, 'savefig', observe):
+            self.run_main()
+        self.assertEqual(len(coverage), 6)
+        self.assertTrue(all(n >= 792 for n in coverage.values()), coverage)
+        self.assertEqual(violations, [], str(violations))
+        print('EXTENTS ORACLE', json.dumps({'premium_fixture': premium, 'marks_by_render': coverage,
+                                          'outside_marks': violations}, sort_keys=True))
+        for target in self.outputs:
+            self.assertTrue(target.read_bytes().startswith(b'\x89PNG'))
 
     def test_mirror_write_failure_preserves_entire_previous_batch(self):
         original = Path.write_bytes

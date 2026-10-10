@@ -34,6 +34,7 @@ h2{font-family:'Source Serif 4',Georgia,serif;font-size:26px;font-weight:700;mar
 p{margin:12px 0}
 a{color:var(--accent)}
 .fig{margin:26px 0}
+h1{font-family:'Source Serif 4',Georgia,serif;font-size:30px;line-height:1.25;margin:26px 0 12px}
 .fig img{width:100%;height:auto;display:block;border:1px solid var(--rule);border-radius:10px}
 .fig figcaption,.cap{color:var(--muted);font-size:14px;margin-top:8px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
@@ -49,7 +50,7 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
 </style>
 </head>
 <body>
-<div class="wrap">
+<main class="wrap">
 
 <p class="series">LTA COE bidding results via data.gov.sg · 396 auctions × 5 categories, 2010–2026 · 3 of 6</p>
 
@@ -60,6 +61,7 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
 </picture>
 </div>
 
+<h1>COE premium jumps: tighter quota or more bids?</h1>
 <p class="lead">Since May 2022, <b>Cat A/B premium changes</b> have a stronger descriptive association with changes in bids per quota than with quota changes. Cat C/D show the opposite ordering. Yet Cat A’s September 2026 record occurred while quota was recovering. Bid counts cannot establish causes or reveal bidders’ reserve values.</p>
 
 <p><b>Intended use:</b> For vehicle-cost planning, this is a market-monitoring brief showing why a quota-only story is insufficient. It does not predict premiums or tell you when to bid, and a budget choice still needs current quotes, purchase deadlines and fleet needs outside this dataset.</p>
@@ -71,13 +73,13 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
   <div class="stat"><div class="n">1,980/1,980 · 10/10</div><div class="l">rows retained, structural checks passed, 0 staging exclusions — two source conflicts remain; 396 exercises × 5 categories, 2010-01 → 2026-09</div></div>
 </div>
 
-<div class="fig">
+<figure class="fig">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="img/f1_quota_premium-dark.png">
 <img src="img/f1_quota_premium.png" alt="Quota premium and quota per exercise, Category A and B, 2010–2026, with the May-2022 redefinition marked">
 </picture>
 <figcaption>Quota premium (left) vs quota (right), Category A and B — the quota cycles; Cat A's premium climbs to a record, Cat B stays below its 2023 peak. Lines mark February 2014 and May 2022 definition changes. Earlier definitions are historical context, not the earlier attribution sample. No exercises Apr–Jun 2020 (bidding pause).</figcaption>
-</div>
+</figure>
 
 <h2>More views</h2>
 <div class="grid2">
@@ -103,13 +105,14 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
 </ol>
 
 <h2>Reproduce</h2>
+<p>The licensed frozen snapshot and original manifest are committed for offline replay: 2026-10-04 pull, through September 2026. After installing pinned dependencies, the cache-validation and analysis commands below require no publisher network access. <code>download.py --force</code> is an intentional live refresh, not historical replay; restore both tracked raw files from the reviewed commit to return to that vintage.</p>
 <p>Linux/macOS (Bash):</p>
 <pre><code>git clone https://github.com/faizsaifulnizam/coe-quota-premium &amp;&amp; cd coe-quota-premium
 uv venv .venv --python 3.12          # or: python -m venv .venv
 source .venv/bin/activate
 uv pip install -r requirements.txt   # or: pip install -r requirements.txt
 
-python src/download.py       # raw CSV → data/raw/ (gitignored; add --force to re-pull)
+python src/download.py       # validate committed frozen source; --force intentionally re-pulls
 python src/build_dataset.py  # staging + 10 checks → data/processed/coe_exercises.parquet
 python src/analysis.py       # pressure table + jumps + attribution + sensitivity → outputs/
 python src/figures.py        # re-renders reports/figures/ (light + dark)
@@ -128,7 +131,7 @@ uv pip install --python .venv\Scripts\python.exe -r requirements.txt
 .venv\Scripts\python.exe src/figures.py
 .venv\Scripts\python.exe tests/smoke_test.py
 .venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py"</code></pre>
-<p class="cap">The latest month may contain R1 only; older incomplete months fail. January–September receipts stay fixed to those months. CSVs, figures/site copies and raw/manifest publish as separate staged batches with rollback for ordinary exceptions, not a pipeline-wide transaction or a power-loss guarantee. A refresh requires rerunning all stages and reviewing prose against outputs.</p>
+<p class="cap">The latest month may contain R1 only; older incomplete months fail. Numeric cells require full-token ASCII integer grammar, valid thousands grouping and signed-BIGINT range. Analysis and rendering reconcile every raw/manifest/parquet row and derived field before publication; chart extents derive from current data. January–September receipts stay fixed to those months. CSVs, figures/site copies and raw/manifest publish as separate staged batches with rollback for ordinary exceptions, not a pipeline-wide transaction or a power-loss guarantee. A refresh requires rerunning all stages and reviewing prose against outputs.</p>
 <p class="cap">Then check <code>outputs/coe_pressure.csv</code>: the 2026-09 R1 Category A row reads premium <b>133,009</b> with quota 1,195 and bids per quota 1.43; R2 reads 131,890. And the first Category B row of <code>outputs/coe_jumps.csv</code> reads +26,990 (2024-01 R2; bids per quota 1.34 → 1.99). Data as of the 2026-10-04 pull — a later re-pull can move the newest exercise.</p>
 
 <h2>Read more</h2>
@@ -142,6 +145,6 @@ uv pip install --python .venv\Scripts\python.exe -r requirements.txt
 <p>An independent, unofficial analysis by <a href="https://github.com/faizsaifulnizam">Muhammad Faiz Saifulnizam</a>. Data: LTA COE bidding results via <a href="https://data.gov.sg/datasets/d_69b3380ad7e51aff3a7dcc84eba52b8a/view">data.gov.sg</a> — Singapore Open Data Licence. Code: MIT. Not a forecast; not causal advice.</p>
 </footer>
 
-</div>
+</main>
 </body>
 </html>
