@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>coe-quota-premium — Pressure, not quota? Singapore's COE premium jumps</title>
-<meta name="description" content="Do COE premiums jump because quotas get tighter — or because more bids chase the same quota? A reproducible auction-by-auction split on LTA data (396 auctions, 2010–2026).">
-<meta property="og:title" content="coe-quota-premium — Pressure, not quota?">
-<meta property="og:description" content="COE premiums (Cat A/B) track bids-per-quota (ρ +0.37/+0.55) far more than quota (ρ −0.14/−0.09; Cat C/D reverse); at the top-5 increases per category, quotas moved 13 down / 11 up while bids-per-quota rose in 17 of 25.">
+<title>COE premium changes: quota and bid-pressure associations</title>
+<meta name="description" content="An exercise-level analysis of Singapore COE quota, bid counts and premiums, with definition-consistent comparisons and sensitivity checks.">
+<meta property="og:title" content="COE premium changes: quota and bid-pressure associations">
+<meta property="og:description" content="Top five positive S$ increases per category; 25 events: 13 quota decreases, 11 increases, 1 unchanged; bids-per-quota rose in 17 of 25. Descriptive associations, not causes.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://faizsaifulnizam.github.io/coe-quota-premium/img/social-card.png">
 <meta property="og:image:width" content="1280">
@@ -57,7 +57,7 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
 <div class="banner">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="img/banner-dark.svg">
-<img src="img/banner.svg" alt="coe-quota-premium — did COE premiums jump because quotas were cut, or because more bids chased the same quota">
+<img src="img/banner.svg" alt="COE premium changes: quota and bid-pressure associations — descriptive comparisons, not causes">
 </picture>
 </div>
 
@@ -68,7 +68,7 @@ footer{border-top:1px solid var(--rule);margin-top:60px;padding-top:18px;color:v
 
 <div class="stats">
   <div class="stat"><div class="n">ρ +0.37 / +0.55</div><div class="l">premium moves vs bids-per-quota, Cat A/B since May 2022 — far above vs quota (ρ −0.14 / −0.09); Cat C/D reverse (quota is their larger correlate)</div></div>
-  <div class="stat"><div class="n">median −0.1%</div><div class="l">quota move at the top-5 increases per category (25 jumps) — 13 down / 11 up; bids-per-quota rose in 17 of 25</div></div>
+  <div class="stat"><div class="n">median −0.1%</div><div class="l">Quota change at selected premium jumps. Top five positive S$ increases per category; 25 events: 13 quota decreases, 11 increases, 1 unchanged; bids-per-quota rose in 17 of 25</div></div>
   <div class="stat"><div class="n">133,009</div><div class="l">Cat A record (2026-09) on a recovering quota — January–September in both years: 2024 → 2026 Cat A average quota 962 → 1,252 (+30%) while the premium kept climbing; latest 131,890</div></div>
   <div class="stat"><div class="n">1,980/1,980 · 10/10</div><div class="l">rows retained, structural checks passed, 0 staging exclusions — two source conflicts remain; 396 exercises × 5 categories, 2010-01 → 2026-09</div></div>
 </div>

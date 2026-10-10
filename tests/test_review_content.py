@@ -8,6 +8,33 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ReviewContentTests(unittest.TestCase):
+    def test_previews_bound_associations_and_selected_quota_counts(self):
+        page = (ROOT / 'docs/index.html').read_text(encoding='utf-8')
+        self.assertIn('COE premium changes: quota and bid-pressure associations', page)
+        self.assertNotIn('because', page)
+        self.assertNotIn('Pressure, not quota?', page)
+        with (ROOT / 'outputs/coe_jumps.csv').open(encoding='utf-8', newline='') as f:
+            rows = list(csv.DictReader(f))
+        self.assertEqual(len(rows), 25)
+        self.assertEqual({cat: sum(r['category'] == cat for r in rows)
+                          for cat in {r['category'] for r in rows}},
+                         {f'Category {cat}': 5 for cat in 'ABCDE'})
+        down = sum(int(r['quota_after']) < int(r['quota_before']) for r in rows)
+        up = sum(int(r['quota_after']) > int(r['quota_before']) for r in rows)
+        flat = len(rows) - down - up
+        self.assertEqual((down, up, flat), (13, 11, 1))
+        self.assertIn('Top five positive S$ increases per category; 25 events', page)
+        self.assertIn(f'{down} quota decreases, {up} increases, {flat} unchanged', page)
+        card = (ROOT / 'docs/social-card.html').read_text(encoding='utf-8')
+        for text in ('Top five positive S$ increases', 'per category · 25 events',
+                     '13 down · 11 up · 1 unchanged', 'Descriptive co-movement'):
+            self.assertIn(text, card)
+        for text in ('because', 'quota flat', 'pressure, not quota'):
+            self.assertNotIn(text, card)
+        self.assertIn('https://faizsaifulnizam.github.io/coe-quota-premium/img/social-card.png', page)
+        for dimension, value in (('width', '1280'), ('height', '640')):
+            self.assertIn(f'property="og:image:{dimension}" content="{value}"', page)
+
     def test_report_has_main_heading_and_semantic_figure_captions(self):
         from html.parser import HTMLParser
         class ReportParser(HTMLParser):
