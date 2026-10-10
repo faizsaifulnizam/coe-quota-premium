@@ -178,7 +178,8 @@ def main():
     os.chdir(ROOT)
     OUT.mkdir(exist_ok=True)
     con = duckdb.connect()
-    con.execute(f"CREATE OR REPLACE VIEW exercise AS SELECT * FROM read_parquet('{PARQUET}')")
+    from src.dataset import load_exercise
+    load_exercise(con, ROOT, PARQUET)
     failed = False
 
     print("== deltas (sql/02) ==")

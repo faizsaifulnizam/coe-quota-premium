@@ -53,6 +53,27 @@ class DownloadTests(unittest.TestCase):
             result = download.main()
         return result, network.call_count
 
+    def test_numeric_grammar_and_bigint_range_preserve_source_pair(self):
+        import csv
+        for field in ('quota', 'bids_success', 'bids_received', 'premium'):
+            for token in ('1,00', '1,,000', '１２３', '9223372036854775808', '100\n', '+100'):
+                with self.subTest(field=field, token=token):
+                    self.cache()
+                    before = self.manifest.read_bytes()
+                    rows = list(csv.reader(io.StringIO(self.new.decode())))
+                    rows[1][download.HEADER.index(field)] = token
+                    text = io.StringIO(newline='')
+                    csv.writer(text).writerows(rows)
+                    with self.assertRaises(SystemExit):
+                        self.run_download(data=text.getvalue().encode(), force=True)
+                    self.assertEqual(self.out.read_bytes(), self.old)
+                    self.assertEqual(self.manifest.read_bytes(), before)
+        for token in ('0', '1000', '1,000', '9223372036854775807', '9,223,372,036,854,775,807'):
+            text = csv_bytes(premium='"' + token + '"')
+            self.assertFalse(download.validate(text)[1], token)
+        for month in ('２０２６-09', '2026-０９', '2026-09\n', '0000-01'):
+            self.assertTrue(download.validate(self.old.replace(b'2010-01', month.encode(), 1))[1])
+
     def test_fresh_download_on_cp1252(self):
         self.assertEqual(self.run_download(cp1252=True)[0], 0)
         self.assertEqual(self.out.read_bytes(), self.new)

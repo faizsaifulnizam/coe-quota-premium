@@ -39,8 +39,7 @@ def spearman(xs, ys):
 class LiveAnalysisTests(unittest.TestCase):
     def setUp(self):
         self.con = duckdb.connect()
-        self.con.execute(f"CREATE TABLE exercise AS SELECT * FROM read_parquet('{analysis.PARQUET}') "
-                         "WHERE month <= DATE '2026-09-01'")
+        self.con.read_parquet(analysis.PARQUET).filter("month <= DATE '2026-09-01'").create('exercise')
         analysis.run_script(self.con, ROOT / "sql/02_metrics.sql")
         self.addCleanup(self.con.close)
 
@@ -65,6 +64,20 @@ class LiveAnalysisTests(unittest.TestCase):
             shutil.copytree(ROOT / 'sql', tree / 'sql')
             (tree / 'data/raw').mkdir(parents=True)
             shutil.copy2(analysis.RAW, tree / 'data/raw/coe-bidding-results.csv')
+            shutil.copy2(ROOT / 'data/raw/pull_manifest.json', tree / 'data/raw/pull_manifest.json')
+            if future_rounds:
+                import json
+                from src import download
+                raw_path = tree / 'data/raw/coe-bidding-results.csv'
+                with raw_path.open('a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f, lineterminator='\n')
+                    for rd in future_rounds:
+                        for category in analysis.CATS:
+                            writer.writerow(['2026-10', rd, category, 10000, 10000, 20000, 200000])
+                manifest_path = tree / 'data/raw/pull_manifest.json'
+                manifest = json.loads(manifest_path.read_text())
+                manifest['files'][download.FILE] = download.validate(raw_path.read_bytes())[0]
+                manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
             (tree / 'data/processed').mkdir(parents=True)
             parquet = tree / 'data/processed/coe_exercises.parquet'
             for rd in future_rounds:
@@ -72,7 +85,7 @@ class LiveAnalysisTests(unittest.TestCase):
                     SELECT DATE '2026-10-01', ?, category, 10000, 20000, 10000, 200000,
                            2.0, 0.5, 'post' FROM exercise
                     WHERE month = DATE '2026-09-01' AND round_no = 2""", [rd])
-            self.con.sql(f"COPY exercise TO '{parquet.as_posix()}' (FORMAT PARQUET)")
+            self.con.execute('COPY exercise TO ? (FORMAT PARQUET)', [parquet.as_posix()])
             out = tree / 'outputs'
             out.mkdir()
             if setup_out:
@@ -82,7 +95,7 @@ class LiveAnalysisTests(unittest.TestCase):
             try:
                 if script:
                     (tree / 'src').mkdir()
-                    for name in ('analysis.py', 'publish.py'):
+                    for name in ('analysis.py', 'publish.py', 'dataset.py', 'download.py'):
                         shutil.copy2(ROOT / 'src' / name, tree / 'src' / name)
                     result = subprocess.run([sys.executable, str(tree / 'src/analysis.py')], cwd=scratch,
                                             env={**os.environ, 'PYTHONUTF8': '1', 'PYTHONPATH': ''},
@@ -244,9 +257,9 @@ class LiveAnalysisTests(unittest.TestCase):
         raw = {(dt.date.fromisoformat(r['month'] + '-01'), int(r['bidding_no']), r['vehicle_class']):
                tuple(int(r[k].replace(',', '')) for k in ('quota', 'bids_received', 'bids_success', 'premium'))
                for r in rows}
-        parquet = {tuple(r[:3]): tuple(r[3:]) for r in self.con.sql(
+        parquet = {tuple(r[:3]): tuple(r[3:]) for r in self.con.execute(
             'SELECT month, round_no, category, quota, bids_received, bids_success, premium '
-            f"FROM read_parquet('{analysis.PARQUET}')").fetchall()}
+            'FROM read_parquet(?)', [analysis.PARQUET]).fetchall()}
         self.assertEqual(raw, parquet)
         raw = {key: value for key, value in raw.items() if key[0] <= dt.date(2026, 9, 1)}
         self.assertEqual(len(raw), 1980)

@@ -34,7 +34,7 @@ ANY_RULE = "(" + " OR ".join(expr for _, expr in RULES) + ")"
 
 PARSED = (f"SELECT month AS month_label, bidding_no AS round_label, vehicle_class AS category, "
           f"quota AS quota_raw, bids_success AS success_raw, bids_received AS received_raw, premium AS premium_raw "
-          f"FROM read_csv_auto('{RAW}', all_varchar = true)")
+          f"FROM read_csv_auto('{RAW.replace(chr(39), chr(39) * 2)}', all_varchar = true)")
 
 
 def q(con, sql):
@@ -43,6 +43,11 @@ def q(con, sql):
 
 def main():
     os.chdir(ROOT)  # sql/01 references data/raw relatively
+    sys.path.insert(0, str(ROOT))
+    from src.download import validate
+    _, problems = validate(Path(RAW).read_bytes())
+    if problems:
+        raise SystemExit('raw validation failed; parquet left untouched: ' + '; '.join(problems))
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
 
@@ -78,7 +83,7 @@ def main():
 
     pq = OUT_DIR / "coe_exercises.parquet"
     tmp = OUT_DIR / "coe_exercises.parquet.tmp"
-    con.sql(f"COPY exercise TO '{tmp.as_posix()}' (FORMAT PARQUET)")
+    con.execute("COPY exercise TO ? (FORMAT PARQUET)", [tmp.as_posix()])
     os.replace(tmp, pq)
     print(f"wrote: {pq.as_posix()}  ({pq.stat().st_size} bytes)")
 

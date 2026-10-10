@@ -50,7 +50,7 @@ A/B category composition changed before May 2022 as well. Taxis left A in August
 - Fields: month · round · category · quota offered · bids received · successful bids · premium.
 - **Premium is the final quota premium in S$, paid by every successful bidder in that category.** It is the auction clearing price, not the lowest winning reserve price or the PQP (the renewal price). LTA describes the clearing threshold as the highest unsuccessful bid plus S$1; its worked example has winning reserve prices S$100 and S$88 but a premium of S$71 ([rules and example](https://onemotoring.lta.gov.sg/content/onemotoring/home/buying/upfront-vehicle-costs/certificate-of-entitlement--coe-.html)).
 - Categories under current rules: A — non-electric cars ≤1,600 cc and ≤97 kW, or fully electric cars ≤110 kW; B — cars above the relevant limits; C — goods vehicles and buses; D — motorcycles; E — open, except motorcycles. These are **not** the definitions for every historical row.
-- Raw CSV is immutable and gitignored. The [downloader](src/download.py) validates structure and checks cached bytes against the SHA-256 manifest. Data: Singapore Open Data Licence, © Land Transport Authority.
+- The small licensed **frozen snapshot** and original SHA-256 manifest are committed unchanged for offline replay. The [downloader](src/download.py) validates structure and checks cached bytes against that manifest. Data: Singapore Open Data Licence, © Land Transport Authority.
 
 ## Method
 
@@ -58,12 +58,12 @@ DuckDB SQL is first-class; Python validates, correlates and draws.
 
 1. **Pull:** [download.py](src/download.py) → raw CSV plus SHA-256/coverage manifest. Both files stage before publication.
 2. **Audit:** [data_audit.md](docs/data_audit.md) records grain, units, dirty-cell counts, definition changes and source conflicts.
-3. **Stage:** [01_staging.sql](sql/01_staging.sql) parses comma-formatted integers and creates one row per exercise/category. All 10 [checks](sql/05_checks.sql) run before replacing the parquet. Only the latest month may legitimately contain R1 alone; older incomplete months still fail.
+3. **Stage:** the builder first applies the same full-token ASCII numeric/month grammar and signed-BIGINT range validation as the downloader; malformed comma grouping is rejected rather than repaired. [01_staging.sql](sql/01_staging.sql) then parses validated integers and creates one row per exercise/category. All 10 [checks](sql/05_checks.sql) run before replacing the parquet. Only the latest month may legitimately contain R1 alone; older incomplete months still fail.
 4. **Measure:** [02_metrics.sql](sql/02_metrics.sql) computes lags in month/round order within category, with pause and May-2022 flags.
 5. **Select events:** top 5 **positive S$ changes per category**, excluding the 2020 resume and disputed D spike. Full history remains in `coe_pressure.csv`.
 6. **Compare changes:** [analysis.py](src/analysis.py) computes per-category/per-period Spearman correlations using **average ranks for ties**. Premium and quota use **% changes**; bids-per-quota uses its **level change**, not a percent. The A/B scope excludes earlier definitions and cross-definition changes.
 7. **Check sensitivity:** 5 A/B variants (base, resume included, absolute-change basis, Pearson, bid-count % growth), an all-category source-conflict exclusion, and a rank-residual partial ([sensitivity](docs/sensitivity.md)).
-8. **Draw:** [figures.py](src/figures.py) creates six PNGs and six site mirrors. Each producer stages its complete batch before replacing targets; [publish.py](src/publish.py) rolls back ordinary promotion failures.
+8. **Draw:** [figures.py](src/figures.py) creates six PNGs and six site mirrors, with padded quota/premium extents derived from the plotted data. Before analysis or rendering, the shared loader reconciles every raw row, its manifest metadata and all processed fields (including derived metrics and regime), rejecting divergence before publication. Each producer stages its complete batch before replacing targets; [publish.py](src/publish.py) rolls back ordinary promotion failures.
 
 ### The comparison, made computable
 
@@ -99,6 +99,7 @@ Counts cannot reveal the reserve-price distribution. A record premium alongside 
 ### Validation — receipts, not claims
 
 - **10/10 structural checks**, 1,980 raw rows retained, zero staging exclusions. Structure is not source truth.
+- **Offline CI:** the licensed snapshot supplies the dated input; pinned direct dependencies, full pipeline, substantive regressions with no skips, four-CSV comparison and same-environment repeated render hashes supplement the seven committed-artifact smoke checks. Action references are unchanged; dependency installation still requires a package index or cache.
 - **Raw-cell recompute:** 2013-01 R1 A premium 92,100; 2022-05 R2 B 95,889; 2026-09 R2 E 137,000; 2026-09 R2 A premium change −1,119. Stdlib recomputation agrees with staging.
 - **Counted statistics exclusions:** **1,975 − 5 pause − 2 May boundary − 196 earlier-definition A/B = 1,772** base changes. Source-conflict sensitivity removes 2 further D changes (**1,770**); disputed B changes were already out of scope.
 - **Sensitivity:** A/B signs and ordering remain stable. Absolute-change vs percentage Spearman values differ by less than 0.03; the bid-count variant changes the pressure metric, not just its scale. Resume inclusion moves A/B correlations by less than **0.017**. Post-2022 partial quota correlations are **−0.20 / −0.22**, descriptive only. A/B Pearson quota magnitude remains below 0.28.
@@ -112,6 +113,8 @@ Counts cannot reveal the reserve-price distribution. A record premium alongside 
 Two source conflicts remain visible: **2010-02 R1 B quota 1,154 vs LTA table 693**; **2010-01 R2 D premium S$20,090 vs table S$852**. The apparent B undersubscription is not treated as established auction behaviour. The sensitivity excludes both disputed observations’ changes and their following changes; the source itself is not repaired.
 
 ## Reproduce
+
+The committed frozen snapshot is the 2026-10-04 pull (78,695 bytes), through 2026-09: SHA-256 `361d5ae2ba641be1e834ca822e4cb66a91f42b6f7663847f42fcc4a4062b4bac`. The original manifest is retained, not reconstructed. After installing the pinned requirements, all commands below run offline: `download.py` validates the committed cache without contacting the publisher. The dated receipt records retrieval metadata; it does not independently certify source accuracy. To restore the published vintage after an intentional refresh, restore both tracked raw files from the reviewed commit, then rebuild.
 
 ### Linux/macOS (Bash)
 
